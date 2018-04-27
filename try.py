@@ -7,8 +7,8 @@ api_secret = "I1OnxPHtPVHxHRcUs01LYRqasxO998v21n0n8nT0g2vaHZWeVfMwNWRnaNTmAlk2"
 
 client = Client(api_key, api_secret)
 
-PRICE_PERCENTAGE_CHANGE = 1.5
-VOLUME_PERCENTAGE_CHANGE = 0.3
+PRICE_PERCENTAGE_CHANGE = 1.25
+VOLUME_PERCENTAGE_CHANGE = 0.2
 
 def load_top100():
     return [ticker.strip()  for ticker in [
