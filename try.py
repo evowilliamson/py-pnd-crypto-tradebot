@@ -149,16 +149,16 @@ def report_ticker_info(ticker, last_info, now_info, addition):
     #     print("Last: " + str(last))
     #     print("Now: " + str(now))
 
-    if (float(now_price) > (float(last_price)*((PRICE_PERCENTAGE_CHANGE + 100)/100)) and
-            (float(now_quoteVolume) > (float(last_quoteVolume) * ((VOLUME_PERCENTAGE_CHANGE + 100) / 100)))):
-        print(str(datetime.datetime.now()) + "**** UP!")
-        print("Last: " + str(last))
-        print("Now: " + str(now))
-    elif (float(now_price) < (float(last_price)*((100 - PRICE_PERCENTAGE_CHANGE)/100)) and
-            (float(now_quoteVolume) > (float(last_quoteVolume) * ((VOLUME_PERCENTAGE_CHANGE + 100) / 100)))):
-        print(str(datetime.datetime.now()) + "**** DOWN!")
-        print("Last: " + str(last))
-        print("Now: " + str(now))
+    if float(now_price) > (float(last_price)*((PRICE_PERCENTAGE_CHANGE + 100)/100)): #and
+       # (float(now_quoteVolume) > (float(last_quoteVolume) * ((VOLUME_PERCENTAGE_CHANGE + 100) / 100)))):
+       print(str(datetime.datetime.now()) + "**** UP!")
+       print("Last: " + str(last))
+       print("Now: " + str(now))
+    # elif (float(now_price) < (float(last_price)*((100 - PRICE_PERCENTAGE_CHANGE)/100)) and
+    #         (float(now_quoteVolume) > (float(last_quoteVolume) * ((VOLUME_PERCENTAGE_CHANGE + 100) / 100)))):
+    #     print(str(datetime.datetime.now()) + "**** DOWN!")
+    #     print("Last: " + str(last))
+    #     print("Now: " + str(now))
 
 
 # get market depth

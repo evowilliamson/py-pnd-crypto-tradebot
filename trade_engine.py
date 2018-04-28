@@ -1,12 +1,14 @@
 from singleton import Singleton
 import time
 import datetime
-from enum import Enum
 import pandas as pd
 import numpy as np
-from system import System
+from trade import TradeDirection
+from trade import TradeStrategy
+from trade import Trade
 
 SYMBOL = "symbol"
+SYMBOLS = SYMBOL + "s"
 LAST_PRICE = "lastPrice"
 CURRENT_VOLUME = "quoteVolume"
 BTC = "BTC"
@@ -21,13 +23,16 @@ VALUE = "value"
 
 SUDDEN_CHANGE_MESSAGE = "{0}: Sudden change {1}: previous price: {2}, current price: {3}, " \
                         "previous volume {4}, current volume {5}"
+STEP_CHANGE_MESSAGE = "{0}: step change: step start price: {1}, current price: {2}"
 
-TradeDirection = Enum("TradeDirection", "UP DOWN")
-
-PRICE_PERCENTAGE_CHANGE_PND = 0.5
+PRICE_PERCENTAGE_CHANGE_PND = 0.3
 VOLUME_PERCENTAGE_CHANGE_PND = 0.1
+PRICE_PERCENTAGE_CHANGE_STEP = 0.05
+VOLUME_MEAN_PERCENTAGE_CHANGE_STEP = 0.05
+STEP_SIZE = 5
 
-SLEEP_TIME = 15
+SLEEP_TIME = 25
+
 
 @Singleton
 class TradeEngine:
@@ -43,76 +48,103 @@ class TradeEngine:
         while True:
             self.add_latest_info()
             for ticker_symbol in self._ticker_symbols:
-                signal = self.change_signal(ticker_symbol)
-                if signal:
-                    self.trade_ticker_symbol(signal)
+                trade_strategy, trade_direction, previous_price, last_price = self.detect_change(ticker_symbol)
+                if trade_direction:
+                    print("Changed detected for : {0}".format(ticker_symbol))
+                    trade = Trade(self, trade_direction, ticker_symbol, trade_strategy,
+                                  previous_price, last_price)
+                    a = 100
             time.sleep(SLEEP_TIME)
 
-    def change_signal(self, ticker_symbol):
-        trade_direction = self.check_sudden_change(ticker_symbol)
+    def detect_change(self, ticker_symbol):
+        trade_direction, previous_price, last_price = self.check_sudden_change(ticker_symbol)
         if trade_direction:
-            System.instance().beep()
-            return trade_direction
-        trade_direction = self.check_n_step_change(ticker_symbol, 2)
+            print("PND for ticker sybmbol : {0} with trade direction {1}".format(ticker_symbol, str(trade_direction)))
+            return TradeStrategy.PND, trade_direction, previous_price, last_price
+        trade_direction = self.check_n_step_change(ticker_symbol)
         if trade_direction:
-            return trade_direction
+            print("Step increase for ticker sybmbol : {0}".format(ticker_symbol))
+            return TradeStrategy.STEP, trade_direction, None, None
+        return None, None, None, None
 
     def check_sudden_change(self, ticker_symbol):
 
-        if len(self._history) < 2:
-            return False
+        if len(self._history[self._history[TICKER_SYMBOL] == ticker_symbol]) < 2:
+            return None, None, None
 
-        ticker_symbol_data_current = self._history[self._history[TICKER_SYMBOL] == ticker_symbol][-1:]
-        ticker_symbol_data_previous = self._history[self._history[TICKER_SYMBOL] == ticker_symbol][-2:]
-        current_price = ticker_symbol_data_current[PRICE].values[0]
-        previous_price = ticker_symbol_data_previous[PRICE].values[0]
-        current_volume = ticker_symbol_data_current[VOLUME].values[0]
-        previous_volume = ticker_symbol_data_previous[VOLUME].values[0]
+        last_price = self.get_last(ticker_symbol, PRICE)
+        previous_price = self.get_penultimate(ticker_symbol, PRICE)
+        last_volume = self.get_last(ticker_symbol, VOLUME)
+        previous_volume = self.get_penultimate(ticker_symbol, VOLUME)
 
-        if current_price > (previous_price * ((PRICE_PERCENTAGE_CHANGE_PND + 100) / 100)) and \
-           current_volume > (previous_volume * ((VOLUME_PERCENTAGE_CHANGE_PND + 100) / 100)):
-            print(SUDDEN_CHANGE_MESSAGE.format(ticker_symbol, TradeDirection.UP, previous_price, current_price,
-                                               previous_volume, current_volume))
+        if last_price > (previous_price * ((PRICE_PERCENTAGE_CHANGE_PND + 100) / 100)) and \
+           last_volume > (previous_volume * ((VOLUME_PERCENTAGE_CHANGE_PND + 100) / 100)):
+            print(SUDDEN_CHANGE_MESSAGE.format(ticker_symbol, TradeDirection.UP, previous_price, last_price,
+                                               previous_volume, last_volume))
             self.print_current_and_previous_info(ticker_symbol, TradeDirection.UP)
-            return TradeDirection.UP
-        elif current_price < (previous_price * ((100 - PRICE_PERCENTAGE_CHANGE_PND) / 100)) and \
-             current_volume > (previous_volume * ((VOLUME_PERCENTAGE_CHANGE_PND + 100) / 100)):
-            print(SUDDEN_CHANGE_MESSAGE.format(ticker_symbol, TradeDirection.DOWN, previous_price, current_price,
-                                               previous_volume, current_volume))
-            return TradeDirection.DOWN
+            return TradeDirection.UP, previous_price, last_price
+        elif last_price < (previous_price * ((100 - PRICE_PERCENTAGE_CHANGE_PND) / 100)) and \
+             last_volume > (previous_volume * ((VOLUME_PERCENTAGE_CHANGE_PND + 100) / 100)):
+            print(SUDDEN_CHANGE_MESSAGE.format(ticker_symbol, TradeDirection.DOWN, previous_price, last_price,
+                                               previous_volume, last_volume))
+            self.print_current_and_previous_info(ticker_symbol, TradeDirection.DOWN)
+            return TradeDirection.DOWN, previous_price, last_price
         else:
-            return None
+            return None, None, None
 
-    def check_n_step_change(self, ticker_symbol, n):
+    # def create_row(self, value):
+    #
+    #     row = pd.DataFrame({
+    #         TIME: datetime.datetime.now(),
+    #         TICKER_SYMBOL: {VALUE: "BTC"},
+    #         PRICE: {VALUE: value},
+    #         VOLUME: {VALUE: value}})
+    #     row = row.set_index([TIME])
+    #     self._history = self._history.append(row)
+
+    def check_n_step_change(self, ticker_symbol):
         """
         This method checks whether there is a step-wise price increase. Over n-periods, a check is made
         to see whether there is an ever-increasing pattern, where the volume of n-periods is at least greater
         than the average volumne of the (t-now - square(n) periods) until the (t-now - n periods)
         """
-        if True:
+
+        if len(self._history[self._history[TICKER_SYMBOL] == ticker_symbol]) < np.square(STEP_SIZE):
             return None
 
-        if len(self._history) < np.square(n):
-            return None
+        historical_volume_mean = \
+            self._history[self._history[TICKER_SYMBOL] == ticker_symbol] \
+                .tail(np.square(STEP_SIZE)).head(np.square(STEP_SIZE)-STEP_SIZE)[VOLUME].mean()
 
-        a = self._history[VOLUME][-np.square(n):].average()
+        start_price = self._history[self._history[TICKER_SYMBOL] == ticker_symbol] \
+                          .tail(STEP_SIZE+1).head(1)[PRICE].values[0]
+        for i in reversed(range(STEP_SIZE, 0, -1)):
+            price = self.\
+                    _history[self._history[TICKER_SYMBOL] == ticker_symbol].tail(STEP_SIZE-i+1).head(1)[PRICE].values[0]
+            if price < (start_price * ((PRICE_PERCENTAGE_CHANGE_STEP + 100) / 100)):
+                return None
+            start_price = price
+            volume = self._history[self._history[TICKER_SYMBOL] == ticker_symbol].tail(STEP_SIZE-i+1) \
+                                       .head(1)[VOLUME].values[0]
+            if volume < (historical_volume_mean * ((VOLUME_MEAN_PERCENTAGE_CHANGE_STEP + 100) / 100)):
+                return None
+
+        print(str(datetime.datetime.now()))
+        print(STEP_CHANGE_MESSAGE.format(ticker_symbol, start_price, self.
+                    _history[self._history[TICKER_SYMBOL] == ticker_symbol].tail(1)[PRICE].values[0]))
 
         return TradeDirection.UP
 
-
-    def trade_ticker_symbol(self, ticker_symbol):
-        return True
-
     def cross_check_ticker_symbols(self):
-        ticker_symbol_trade_data = self._trade_client.get_ticker()
-        for info in ticker_symbol_trade_data:
+        symbols = self._trade_client.get_exchange_info()[SYMBOLS]
+        for info in symbols:
             ticker_symbol = self.get_adjusted_trade_data_ticker_symbol(info)
             if not self.exists_ticker_symbol_in_configuration(ticker_symbol):
                 print("Ticker symbol {0} found in trade data is not a configured ticker symbol".format(ticker_symbol))
 
         temp_ticker_symbols = []
         for ticker_symbol in self._ticker_symbols:
-            if not self.exists_ticker_symbol_in_trade_data(ticker_symbol, ticker_symbol_trade_data):
+            if not self.exists_ticker_symbol_in_trade_data(ticker_symbol, symbols):
                 print("Ticker symbol {0} found in configuration is not present in trade data as a ticker symbol".
                       format(ticker_symbol))
             else:
@@ -140,15 +172,21 @@ class TradeEngine:
         return False
 
     def print_current_and_previous_info(self, ticker_symbol, trade_direction):
-        print(str(datetime.datetime.now()) + "**** " + trade_direction)
-        print("Last: " + str(self._history[ticker_symbol][-2]))
-        print("Now: " + str(self._history[ticker_symbol][-1]))
+        print(str(datetime.datetime.now()) + "**** " + str(trade_direction))
+        print("Previous: " + str(self.get_penultimate(ticker_symbol, PRICE)))
+        print("Last: " + str(self.get_last(ticker_symbol, PRICE)))
 
     def exists_ticker_symbol_in_configuration(self, ticker_symbol):
         for _ticker_symbol in self._ticker_symbols:
             if _ticker_symbol == ticker_symbol:
                 return True
         return False
+
+    def get_last(self, ticker_symbol, what):
+        return self._history[self._history[TICKER_SYMBOL] == ticker_symbol].tail(1)[what].values[0]
+
+    def get_penultimate(self, ticker_symbol, what):
+        return self._history[self._history[TICKER_SYMBOL] == ticker_symbol].tail(2).head(1)[what].values[0]
 
     @classmethod
     def exists_ticker_symbol_in_trade_data(cls, ticker_symbol, ticker_symbols_trade_data):
@@ -274,3 +312,6 @@ class TradeEngine:
     def tickers_symbols(self):
         return self._ticker_symbols
 
+    @property
+    def trade_history(self):
+        return self._history
