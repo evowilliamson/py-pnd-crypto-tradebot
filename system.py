@@ -8,6 +8,7 @@ BINANCE_SECRET = "binance_secret"
 frequency = 2500
 duration = 1000
 
+
 @Singleton
 class System:
 

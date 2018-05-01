@@ -4,8 +4,7 @@ import datetime
 import pandas as pd
 import numpy as np
 from trade import TradeDirection
-from trade import TradeStrategy
-from trade import Trade
+import os
 
 SYMBOL = "symbol"
 SYMBOLS = SYMBOL + "s"
@@ -20,18 +19,46 @@ TICKER_SYMBOL = "ticker_symbol"
 PRICE = "price"
 VOLUME = "volume"
 VALUE = "value"
+PENULTIMATE = 2
+INTERVAL = "interval"
+PND = "pnd"
 
-SUDDEN_CHANGE_MESSAGE = "{0}: Sudden change {1}: previous price: {2}, current price: {3}, " \
-                        "previous volume {4}, current volume {5}"
+ROWS_PER_COLUMN = 10
+
+INTERVAL_CHANGE_MESSAGE = "{0}: Change {1}: price: {2}, volume {3}"
 STEP_CHANGE_MESSAGE = "{0}: step change: step start price: {1}, current price: {2}"
 
-PRICE_PERCENTAGE_CHANGE_PND = 0.3
-VOLUME_PERCENTAGE_CHANGE_PND = 0.1
+PRICE_PERCENTAGE_CHANGE_PND = 0.005
+VOLUME_PERCENTAGE_CHANGE_PND = 0.005
 PRICE_PERCENTAGE_CHANGE_STEP = 0.05
 VOLUME_MEAN_PERCENTAGE_CHANGE_STEP = 0.05
 STEP_SIZE = 5
+NUMBER_OF_COLUMNS = 3
+FIRST_ROW = 1
 
-SLEEP_TIME = 25
+SLEEP_TIME = 30
+CANDLE_STICKS_PER_MINUTE = 60 / SLEEP_TIME
+
+INTERVALS = [1*SLEEP_TIME, 2*SLEEP_TIME, 5*SLEEP_TIME, 10*SLEEP_TIME, 20*SLEEP_TIME,
+             60*SLEEP_TIME, 120*SLEEP_TIME, 240*SLEEP_TIME, 480*SLEEP_TIME]
+
+# PERCENTAGE_CHANGE_PRICE = {1*SLEEP_TIME: 0.625, 2*SLEEP_TIME: 1.25,
+#                            5*SLEEP_TIME: 2.0, 15*SLEEP_TIME: 3.0, 30*SLEEP_TIME: 5.0}
+#
+# PERCENTAGE_CHANGE_VOLUME = {1*SLEEP_TIME: 0.1, 2*SLEEP_TIME: 0.2,
+#                             5*SLEEP_TIME: 0.1, 15*SLEEP_TIME: 0.1, 30*SLEEP_TIME: 0.1}
+
+PERCENTAGE_CHANGE_PRICE = {1*SLEEP_TIME: 0.5, 2*SLEEP_TIME: 1.25, 5*SLEEP_TIME: 0.0,
+                           10*SLEEP_TIME: 0.0, 20*SLEEP_TIME: 0.0, 60*SLEEP_TIME: 0.0,
+                           120*SLEEP_TIME: 0.0, 240 * SLEEP_TIME: 0.0, 480 * SLEEP_TIME: 0.0}
+
+PERCENTAGE_CHANGE_VOLUME = {1*SLEEP_TIME: 0.3, 2*SLEEP_TIME: 0.5, 5*SLEEP_TIME: 0.0,
+                            10*SLEEP_TIME: 0.0, 20*SLEEP_TIME: 0.0, 60*SLEEP_TIME: 0.0,
+                            120*SLEEP_TIME: 0.0, 240 * SLEEP_TIME: 0.0, 480 * SLEEP_TIME: 0.0}
+
+INTERVAL_TO_COLUMN_NO = {1*SLEEP_TIME: 1, 2*SLEEP_TIME: 2, 5*SLEEP_TIME: 3,
+                         10*SLEEP_TIME: 1, 20*SLEEP_TIME: 2, 60*SLEEP_TIME: 3,
+                         120*SLEEP_TIME: 1, 240 * SLEEP_TIME: 2, 480 * SLEEP_TIME: 3}
 
 
 @Singleton
@@ -41,56 +68,104 @@ class TradeEngine:
         self._ticker_symbols = self.load_ticker_symbols()
         self._history = pd.DataFrame()
         self._trade_client = None
+        self._changes = pd.DataFrame()
 
     def trade(self, trade_client):
         self._trade_client = trade_client
         self.cross_check_ticker_symbols()
         while True:
             self.add_latest_info()
+            t1 = datetime.datetime.now()
             for ticker_symbol in self._ticker_symbols:
-                trade_strategy, trade_direction, previous_price, last_price = self.detect_change(ticker_symbol)
-                if trade_direction:
-                    print("Changed detected for : {0}".format(ticker_symbol))
-                    trade = Trade(self, trade_direction, ticker_symbol, trade_strategy,
-                                  previous_price, last_price)
-                    a = 100
+                for i in INTERVALS:
+                    self.check_change_interval(ticker_symbol, i)
+            t2 = datetime.datetime.now()
+            print(str(t2 - t1))
+            self.report_changes()
+            print("Wait...")
+            self._changes = pd.DataFrame()
             time.sleep(SLEEP_TIME)
 
-    def detect_change(self, ticker_symbol):
-        trade_direction, previous_price, last_price = self.check_sudden_change(ticker_symbol)
-        if trade_direction:
-            print("PND for ticker sybmbol : {0} with trade direction {1}".format(ticker_symbol, str(trade_direction)))
-            return TradeStrategy.PND, trade_direction, previous_price, last_price
-        trade_direction = self.check_n_step_change(ticker_symbol)
-        if trade_direction:
-            print("Step increase for ticker sybmbol : {0}".format(ticker_symbol))
-            return TradeStrategy.STEP, trade_direction, None, None
-        return None, None, None, None
+    def check_change_interval(self, ticker_symbol, interval):
 
-    def check_sudden_change(self, ticker_symbol):
-
-        if len(self._history[self._history[TICKER_SYMBOL] == ticker_symbol]) < 2:
-            return None, None, None
+        candle_sticks = int(interval / SLEEP_TIME)
+        if len(self._history[self._history[TICKER_SYMBOL] == ticker_symbol]) < \
+                        candle_sticks + 1:
+            return
 
         last_price = self.get_last(ticker_symbol, PRICE)
-        previous_price = self.get_penultimate(ticker_symbol, PRICE)
+        previous_price = self.get_last_minus_n(ticker_symbol, PRICE, candle_sticks)
         last_volume = self.get_last(ticker_symbol, VOLUME)
-        previous_volume = self.get_penultimate(ticker_symbol, VOLUME)
+        previous_volume = self.get_last_minus_n(ticker_symbol, VOLUME, candle_sticks)
 
-        if last_price > (previous_price * ((PRICE_PERCENTAGE_CHANGE_PND + 100) / 100)) and \
-           last_volume > (previous_volume * ((VOLUME_PERCENTAGE_CHANGE_PND + 100) / 100)):
-            print(SUDDEN_CHANGE_MESSAGE.format(ticker_symbol, TradeDirection.UP, previous_price, last_price,
-                                               previous_volume, last_volume))
-            self.print_current_and_previous_info(ticker_symbol, TradeDirection.UP)
-            return TradeDirection.UP, previous_price, last_price
-        elif last_price < (previous_price * ((100 - PRICE_PERCENTAGE_CHANGE_PND) / 100)) and \
-             last_volume > (previous_volume * ((VOLUME_PERCENTAGE_CHANGE_PND + 100) / 100)):
-            print(SUDDEN_CHANGE_MESSAGE.format(ticker_symbol, TradeDirection.DOWN, previous_price, last_price,
-                                               previous_volume, last_volume))
-            self.print_current_and_previous_info(ticker_symbol, TradeDirection.DOWN)
-            return TradeDirection.DOWN, previous_price, last_price
-        else:
-            return None, None, None
+        pnd = False
+        if last_price > (previous_price * ((PERCENTAGE_CHANGE_PRICE[interval] + 100) / 100)) and \
+           last_volume > (previous_volume * ((PERCENTAGE_CHANGE_VOLUME[interval] + 100) / 100)) and \
+                (interval == SLEEP_TIME or interval == SLEEP_TIME*2):
+            pnd = True
+
+        change = pd.DataFrame({
+            TIME: datetime.datetime.now(),
+            TICKER_SYMBOL: {VALUE: ticker_symbol},
+            INTERVAL: {VALUE: interval},
+            PRICE: {VALUE: self.get_percentage(previous_price, last_price)},
+            VOLUME: {VALUE: self.get_percentage(previous_volume, last_volume)},
+            PND: {VALUE: pnd}})
+        change = change.set_index([TIME])
+        self._changes = self._changes.append(change)
+        return pnd
+
+    def report_changes(self):
+
+        if len(self._changes) == 0:
+            return
+
+        pnds = self._changes[self._changes[PND]]
+        if not pnds.empty:
+            for interval in range(1, 1000):
+                print("*************************************************************************************")
+                print("")
+                print("*************************************************************************************")
+                print("")
+            print("*************************************************************************************")
+            print("Pump detected !!!! ")
+            print("*************************************************************************************")
+
+        self._changes = self._changes.sort_values(by=[INTERVAL, PRICE], ascending=[True, False])
+        line = ""
+        for block in range(0, int(len(INTERVALS)/NUMBER_OF_COLUMNS)):
+            for row_no in range(1, ROWS_PER_COLUMN):
+                self.print_row(line, row_no, INTERVALS[block * NUMBER_OF_COLUMNS:(block + 1) * NUMBER_OF_COLUMNS])
+
+    def print_row(self, line, row_no, intervals):
+        header_line = ""
+        for interval in intervals:
+            if row_no == FIRST_ROW:
+                header_line += "{0} min. Ticker  Price     Volumne     Pnd         ".format(
+                        str(float(interval) / 60.0), ROWS_PER_COLUMN)
+            row = self.get_row_for_interval(interval, row_no)
+            if not row.empty:
+                line += "{0: <17}{1: >+3.3f}    {2: >+2.3f}      {3: <6}      " \
+                        .format(row[TICKER_SYMBOL], row[PRICE], row[VOLUME], "***" if row[PND] else "")
+            if INTERVAL_TO_COLUMN_NO[interval] == NUMBER_OF_COLUMNS:
+                if row_no == FIRST_ROW:
+                    print("")
+                    print(header_line)
+                    print("---------------------------------------------------------------------------------------"
+                          "-----------------------------------------------------------")
+                    header_line = ""
+                print(line)
+                line = ""
+
+    def get_row_for_interval(self, interval, row_no):
+        top = self._changes[self._changes[INTERVAL] == interval].head(ROWS_PER_COLUMN)
+        if row_no > len(top):
+            return pd.Series([])
+        return top.iloc[row_no - 1]
+
+    @staticmethod
+    def get_percentage(start, end):
+        return ((end - start) / start) * 100.0
 
     # def create_row(self, value):
     #
@@ -171,11 +246,6 @@ class TradeEngine:
                 return True
         return False
 
-    def print_current_and_previous_info(self, ticker_symbol, trade_direction):
-        print(str(datetime.datetime.now()) + "**** " + str(trade_direction))
-        print("Previous: " + str(self.get_penultimate(ticker_symbol, PRICE)))
-        print("Last: " + str(self.get_last(ticker_symbol, PRICE)))
-
     def exists_ticker_symbol_in_configuration(self, ticker_symbol):
         for _ticker_symbol in self._ticker_symbols:
             if _ticker_symbol == ticker_symbol:
@@ -186,7 +256,10 @@ class TradeEngine:
         return self._history[self._history[TICKER_SYMBOL] == ticker_symbol].tail(1)[what].values[0]
 
     def get_penultimate(self, ticker_symbol, what):
-        return self._history[self._history[TICKER_SYMBOL] == ticker_symbol].tail(2).head(1)[what].values[0]
+        return self.get_last_minus_n(ticker_symbol, what, PENULTIMATE)
+
+    def get_last_minus_n(self, ticker_symbol, what, n):
+        return self._history[self._history[TICKER_SYMBOL] == ticker_symbol].tail(n+1).head(1)[what].values[0]
 
     @classmethod
     def exists_ticker_symbol_in_trade_data(cls, ticker_symbol, ticker_symbols_trade_data):
