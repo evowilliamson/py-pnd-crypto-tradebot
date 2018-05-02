@@ -4,7 +4,8 @@ import datetime
 import pandas as pd
 import numpy as np
 from trade import TradeDirection
-import os
+import gevent
+import threading
 
 SYMBOL = "symbol"
 SYMBOLS = SYMBOL + "s"
@@ -42,6 +43,10 @@ CANDLE_STICKS_PER_MINUTE = 60 / SLEEP_TIME
 INTERVALS = [1*SLEEP_TIME, 2*SLEEP_TIME, 5*SLEEP_TIME, 10*SLEEP_TIME, 20*SLEEP_TIME,
              60*SLEEP_TIME, 120*SLEEP_TIME, 240*SLEEP_TIME, 480*SLEEP_TIME]
 
+GAINERS = "gainers"
+LOSERS = "losers"
+LIST_MODES = [GAINERS, LOSERS]
+
 # PERCENTAGE_CHANGE_PRICE = {1*SLEEP_TIME: 0.625, 2*SLEEP_TIME: 1.25,
 #                            5*SLEEP_TIME: 2.0, 15*SLEEP_TIME: 3.0, 30*SLEEP_TIME: 5.0}
 #
@@ -62,18 +67,22 @@ INTERVAL_TO_COLUMN_NO = {1*SLEEP_TIME: 1, 2*SLEEP_TIME: 2, 5*SLEEP_TIME: 3,
 
 
 @Singleton
-class TradeEngine:
+class TradeEngine(gevent.Greenlet):
 
-    def __init__(self):
+    def __init__(self, trade_client):
+        self._trade_client = trade_client
+        self._thread = threading.Thread(target=self.do_run)
+        self._thread.start()
         self._ticker_symbols = self.load_ticker_symbols()
         self._history = pd.DataFrame()
-        self._trade_client = None
         self._changes = pd.DataFrame()
-
-    def trade(self, trade_client):
         self._trade_client = trade_client
         self.cross_check_ticker_symbols()
+        self._list_mode = GAINERS
+
+    def do_run(self):
         while True:
+            print("going...")
             self.add_latest_info()
             t1 = datetime.datetime.now()
             for ticker_symbol in self._ticker_symbols:
@@ -85,6 +94,12 @@ class TradeEngine:
             print("Wait...")
             self._changes = pd.DataFrame()
             time.sleep(SLEEP_TIME)
+
+    def join(self):
+        self._thread.join()
+
+    def change_list_mode(self, list_mode):
+        self._list_mode = list_mode
 
     def check_change_interval(self, ticker_symbol, interval):
 
@@ -131,7 +146,9 @@ class TradeEngine:
             print("Pump detected !!!! ")
             print("*************************************************************************************")
 
-        self._changes = self._changes.sort_values(by=[INTERVAL, PRICE], ascending=[True, False])
+        sort_order = False if self._list_mode == GAINERS else True
+        self._changes = self._changes.sort_values(by=[INTERVAL, PRICE],
+                                                  ascending=[True, sort_order])
         line = ""
         for block in range(0, int(len(INTERVALS)/NUMBER_OF_COLUMNS)):
             for row_no in range(1, ROWS_PER_COLUMN):

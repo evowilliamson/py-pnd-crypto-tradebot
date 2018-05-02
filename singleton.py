@@ -6,10 +6,10 @@ class Singleton:
         self._decorated = decorated
         self._instance = None
 
-    def instance(self):
+    def instance(self, *args):
         """ method that creates the (only) instance ever available. """
         if not self._instance:
-            self._instance = self._decorated()
+            self._instance = self._decorated(*args)
         return self._instance
 
     def __call__(self):
