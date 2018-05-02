@@ -6,6 +6,8 @@ import numpy as np
 from trade import TradeDirection
 import gevent
 import threading
+from dao.dao import Dao
+from pump import Pump
 
 SYMBOL = "symbol"
 SYMBOLS = SYMBOL + "s"
@@ -22,15 +24,15 @@ VOLUME = "volume"
 VALUE = "value"
 PENULTIMATE = 2
 INTERVAL = "interval"
-PND = "pnd"
+PUMP = "pump"
 
 ROWS_PER_COLUMN = 10
 
 INTERVAL_CHANGE_MESSAGE = "{0}: Change {1}: price: {2}, volume {3}"
 STEP_CHANGE_MESSAGE = "{0}: step change: step start price: {1}, current price: {2}"
 
-PRICE_PERCENTAGE_CHANGE_PND = 0.005
-VOLUME_PERCENTAGE_CHANGE_PND = 0.005
+PRICE_PERCENTAGE_CHANGE_PUMP = 0.005
+VOLUME_PERCENTAGE_CHANGE_PUMP = 0.005
 PRICE_PERCENTAGE_CHANGE_STEP = 0.05
 VOLUME_MEAN_PERCENTAGE_CHANGE_STEP = 0.05
 STEP_SIZE = 5
@@ -53,11 +55,11 @@ LIST_MODES = [GAINERS, LOSERS]
 # PERCENTAGE_CHANGE_VOLUME = {1*SLEEP_TIME: 0.1, 2*SLEEP_TIME: 0.2,
 #                             5*SLEEP_TIME: 0.1, 15*SLEEP_TIME: 0.1, 30*SLEEP_TIME: 0.1}
 
-PERCENTAGE_CHANGE_PRICE = {1*SLEEP_TIME: 0.5, 2*SLEEP_TIME: 1.25, 5*SLEEP_TIME: 0.0,
+PERCENTAGE_CHANGE_PRICE = {1*SLEEP_TIME: 0.1, 2*SLEEP_TIME: 1.25, 5*SLEEP_TIME: 0.0,
                            10*SLEEP_TIME: 0.0, 20*SLEEP_TIME: 0.0, 60*SLEEP_TIME: 0.0,
                            120*SLEEP_TIME: 0.0, 240 * SLEEP_TIME: 0.0, 480 * SLEEP_TIME: 0.0}
 
-PERCENTAGE_CHANGE_VOLUME = {1*SLEEP_TIME: 0.3, 2*SLEEP_TIME: 0.5, 5*SLEEP_TIME: 0.0,
+PERCENTAGE_CHANGE_VOLUME = {1*SLEEP_TIME: 0.05, 2*SLEEP_TIME: 0.5, 5*SLEEP_TIME: 0.0,
                             10*SLEEP_TIME: 0.0, 20*SLEEP_TIME: 0.0, 60*SLEEP_TIME: 0.0,
                             120*SLEEP_TIME: 0.0, 240 * SLEEP_TIME: 0.0, 480 * SLEEP_TIME: 0.0}
 
@@ -69,8 +71,9 @@ INTERVAL_TO_COLUMN_NO = {1*SLEEP_TIME: 1, 2*SLEEP_TIME: 2, 5*SLEEP_TIME: 3,
 @Singleton
 class TradeEngine(gevent.Greenlet):
 
-    def __init__(self, trade_client):
+    def __init__(self, trade_client, order_client):
         self._trade_client = trade_client
+        self._order_client = order_client
         self._thread = threading.Thread(target=self.do_run)
         self._thread.start()
         self._ticker_symbols = self.load_ticker_symbols()
@@ -79,21 +82,21 @@ class TradeEngine(gevent.Greenlet):
         self._trade_client = trade_client
         self.cross_check_ticker_symbols()
         self._list_mode = GAINERS
+        self._trades = []
+        self._pumps = Dao.instance().get_all_running_pumps()
 
     def do_run(self):
         while True:
-            print("going...")
             self.add_latest_info()
-            t1 = datetime.datetime.now()
             for ticker_symbol in self._ticker_symbols:
                 for i in INTERVALS:
                     self.check_change_interval(ticker_symbol, i)
-            t2 = datetime.datetime.now()
-            print(str(t2 - t1))
             self.report_changes()
-            print("Wait...")
             self._changes = pd.DataFrame()
             time.sleep(SLEEP_TIME)
+
+    # def check_pumps(self):
+    #     for pump in self._pumps:
 
     def join(self):
         self._thread.join()
@@ -113,11 +116,11 @@ class TradeEngine(gevent.Greenlet):
         last_volume = self.get_last(ticker_symbol, VOLUME)
         previous_volume = self.get_last_minus_n(ticker_symbol, VOLUME, candle_sticks)
 
-        pnd = False
+        pump = False
         if last_price > (previous_price * ((PERCENTAGE_CHANGE_PRICE[interval] + 100) / 100)) and \
            last_volume > (previous_volume * ((PERCENTAGE_CHANGE_VOLUME[interval] + 100) / 100)) and \
                 (interval == SLEEP_TIME or interval == SLEEP_TIME*2):
-            pnd = True
+            self.create_new_pump(ticker_symbol, previous_price, last_price, previous_volume, last_volume)
 
         change = pd.DataFrame({
             TIME: datetime.datetime.now(),
@@ -125,18 +128,25 @@ class TradeEngine(gevent.Greenlet):
             INTERVAL: {VALUE: interval},
             PRICE: {VALUE: self.get_percentage(previous_price, last_price)},
             VOLUME: {VALUE: self.get_percentage(previous_volume, last_volume)},
-            PND: {VALUE: pnd}})
+            PUMP: {VALUE: pump}})
         change = change.set_index([TIME])
         self._changes = self._changes.append(change)
-        return pnd
+        return pump
+
+    def create_new_pump(self, ticker_symbol, previous_price, last_price, previous_volume, last_volume):
+        pump = Pump(ticker_symbol=ticker_symbol, start_price=last_price,
+                    initial_pump_price_pct=self.get_percentage(previous_price, last_price),
+                    initial_pump_volume_pct=self.get_percentage(previous_volume, last_volume),
+                    amount_btc=100.0, stop_loss=100.0)
+        self.register_pump(pump)
 
     def report_changes(self):
 
         if len(self._changes) == 0:
             return
 
-        pnds = self._changes[self._changes[PND]]
-        if not pnds.empty:
+        pumps = self._changes[self._changes[PUMP]]
+        if not pumps.empty:
             for interval in range(1, 1000):
                 print("*************************************************************************************")
                 print("")
@@ -158,12 +168,12 @@ class TradeEngine(gevent.Greenlet):
         header_line = ""
         for interval in intervals:
             if row_no == FIRST_ROW:
-                header_line += "{0} min. Ticker  Price     Volumne     Pnd         ".format(
+                header_line += "{0} min. Ticker  Price     Volumne     Pump         ".format(
                         str(float(interval) / 60.0), ROWS_PER_COLUMN)
             row = self.get_row_for_interval(interval, row_no)
             if not row.empty:
                 line += "{0: <17}{1: >+3.3f}    {2: >+2.3f}      {3: <6}      " \
-                        .format(row[TICKER_SYMBOL], row[PRICE], row[VOLUME], "***" if row[PND] else "")
+                        .format(row[TICKER_SYMBOL], row[PRICE], row[VOLUME], "***" if row[PUMP] else "")
             if INTERVAL_TO_COLUMN_NO[interval] == NUMBER_OF_COLUMNS:
                 if row_no == FIRST_ROW:
                     print("")
@@ -183,16 +193,6 @@ class TradeEngine(gevent.Greenlet):
     @staticmethod
     def get_percentage(start, end):
         return ((end - start) / start) * 100.0
-
-    # def create_row(self, value):
-    #
-    #     row = pd.DataFrame({
-    #         TIME: datetime.datetime.now(),
-    #         TICKER_SYMBOL: {VALUE: "BTC"},
-    #         PRICE: {VALUE: value},
-    #         VOLUME: {VALUE: value}})
-    #     row = row.set_index([TIME])
-    #     self._history = self._history.append(row)
 
     def check_n_step_change(self, ticker_symbol):
         """
@@ -292,6 +292,15 @@ class TradeEngine(gevent.Greenlet):
         else:
             _ticker_symbol = info[SYMBOL].replace(BTC, "")
         return _ticker_symbol
+
+    def register_pump(self, __pump):
+        for pump in self._pumps:
+            if pump.ticker_symbol == __pump.ticker_symbol:
+                print("ticker symbol {0} already pumping".format(__pump.ticker_symbol))
+                return
+        self._order_client.create_order(ticker_symbol=__pump.ticker_symbol,
+                                        price=__pump.last_price)
+        Dao.instance().save_new_pump(__pump)
 
     @classmethod
     def load_ticker_symbols(cls):

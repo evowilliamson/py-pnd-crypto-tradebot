@@ -4,7 +4,8 @@ from command_center import CommandCenter
 
 
 trade_client = System.instance().trade_client
-trade_engine = TradeEngine.instance(trade_client)
+order_client = System.instance().order_client
+trade_engine = TradeEngine.instance(trade_client, order_client)
 command_center = CommandCenter(trade_engine)
 
 command_center.join()

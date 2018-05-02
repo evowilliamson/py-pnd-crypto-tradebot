@@ -1,0 +1,7 @@
+{
+    "dbuser": "trade_bot",
+    "dbpassword": "trade_bot",
+    "dbhost": "127.0.0.1",
+    "dbname": "trade_bot",
+    "dbport": "3306"
+}
