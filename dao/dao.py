@@ -3,15 +3,11 @@ from sqlalchemy.orm import sessionmaker
 import datetime
 from dao.pump import Pump
 from singleton import Singleton
-from system_config import Config
+from system_config import Config, DBUSER, DBHOST, DBPASSWORD, DBNAME, DBPORT
 
 DB_URI = "mysql+mysqlconnector://{user}:{password}@{host}:{port}/{db}"
-DBUSER = "dbuser"
-DBPASSWORD = "dbpassword"
-DBHOST = "dbhost"
-DBNAME = "dbname"
-DBPORT = "dbport"
 
+STOP_LOSS_END = "ENDED, STOP LOSS HIT"
 
 @Singleton
 class Dao:
@@ -32,20 +28,18 @@ class Dao:
     def get_all_running_pumps(self):
         return self._session.query(Pump).filter_by(end_time=None).all()
 
-    def save_new_pump(self, pump):
-        pump_orm = Pump(ticker_symbol=pump.ticker_symbol, start_time=datetime.datetime.now(),
-                        start_price=float(str(pump.start_price)),
-                        initial_pump_price_pct=float(str(pump.initial_pump_price_pct)),
-                        initial_pump_volume_pct=float(str(pump.initial_pump_volume_pct)),
-                        amount_btc=float(str(pump.amount_btc)), stop_loss=float(str(pump.stop_loss)))
+    def save_pump(self, ticker_symbol, start_price, quantity,
+                  initial_pump_price_pct, initial_pump_volume_pct, stop_loss):
+        pump_orm = Pump(ticker_symbol=ticker_symbol, start_time=datetime.datetime.now(),
+                        start_price=float(str(start_price)), quantity=float(str(quantity)),
+                        initial_pump_price_pct=float(str(initial_pump_price_pct)),
+                        initial_pump_volume_pct=float(str(initial_pump_volume_pct)),
+                        stop_loss=float(str(stop_loss)))
         self._session.add(pump_orm)
         self._session.commit()
 
-    def save_running_pump(self, pump):
-        pump_orm = Pump(ticker_symbol=pump.ticker_symbol, start_time=datetime.datetime.now(),
-                        start_price=float(pump.start_price), amount_btc=float(pump.amount_btc),
-                        stop_loss=float(pump.stop_loss), profit_pct=float(pump.profit_pct))
-        self._session.add(pump_orm)
+    def update_pump_stop_loss(self, pump_orm, pump):
+        pump_orm.update_stop_loss(pump.profit_pct, pump.end_price, pump.end_time, pump.status)
         self._session.commit()
 
 

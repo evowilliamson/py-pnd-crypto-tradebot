@@ -16,7 +16,7 @@ class System:
     def __init__(self, *args):
         self._config = self.read_config()
         self._client = Client(self._config[BINANCE_KEY], self._config[BINANCE_SECRET])
-        self._order_client = DummyClient()
+        self._order_client = DummyClient.instance()
 
     @classmethod
     def read_config(cls):

@@ -9,25 +9,21 @@ class Pump(declarative_base()):
     id = Column(Integer, primary_key=True, autoincrement=True)
     ticker_symbol = Column(String(255))
     start_time = Column(DateTime)
+    quantity = Column(Float)
     start_price = Column(Float)
-    amount_btc = Column(Float)
     initial_pump_price_pct = Column(Float)
     initial_pump_volume_pct = Column(Float)
     stop_loss = Column(Float)
     profit_pct = Column(Float)
     end_time = Column(DateTime)
     end_price = Column(Float)
+    status = Column(String(50))
 
-    # def __init__(self, __id, description, component, start_time, end_time, emails, owner, validated):
-    #     self._id = __id
-    #     self._description = description
-    #     self._component = component
-    #     self._start_time = start_time
-    #     self._end_time = end_time
-    #     self._emails = emails
-    #     self._owner = owner
-    #     self._validated = validated
-
+    def update_stop_loss(self, profit_pct, end_price, end_time, status):
+        self.profit_pct = profit_pct
+        self.end_price = end_price
+        self.end_time = end_time
+        self.status = status
 
 
 

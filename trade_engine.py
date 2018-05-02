@@ -4,10 +4,9 @@ import datetime
 import pandas as pd
 import numpy as np
 from trade import TradeDirection
-import gevent
 import threading
 from dao.dao import Dao
-from pump import Pump
+from system_config import Config, BTC_PUMP_QUANTITY
 
 SYMBOL = "symbol"
 SYMBOLS = SYMBOL + "s"
@@ -49,6 +48,8 @@ GAINERS = "gainers"
 LOSERS = "losers"
 LIST_MODES = [GAINERS, LOSERS]
 
+PUMP_UPTICK_PRICE_PCT = 1.0
+
 # PERCENTAGE_CHANGE_PRICE = {1*SLEEP_TIME: 0.625, 2*SLEEP_TIME: 1.25,
 #                            5*SLEEP_TIME: 2.0, 15*SLEEP_TIME: 3.0, 30*SLEEP_TIME: 5.0}
 #
@@ -69,7 +70,7 @@ INTERVAL_TO_COLUMN_NO = {1*SLEEP_TIME: 1, 2*SLEEP_TIME: 2, 5*SLEEP_TIME: 3,
 
 
 @Singleton
-class TradeEngine(gevent.Greenlet):
+class TradeEngine():
 
     def __init__(self, trade_client, order_client):
         self._trade_client = trade_client
@@ -95,8 +96,15 @@ class TradeEngine(gevent.Greenlet):
             self._changes = pd.DataFrame()
             time.sleep(SLEEP_TIME)
 
-    # def check_pumps(self):
-    #     for pump in self._pumps:
+    def check_pumps(self):
+        for pump in self._pumps:
+            if self.get_last(ticker_symbol=pump.ticker_symbol, what=PRICE) < pump.stop_loss:
+                print("Ticker symbol {0}, just tell through stop loss {1}, "
+                      "perceived loss in btc value = {2}, usd value = {3}".format(
+                        pump.ticker_symbol,
+                        pump.stop_loss,
+                        (pump.start_price - pump.start_price) * float(pump.quantity),
+                        ((pump.start_price - pump.start_price) * float(pump.quantity)) * self.get_last(BTC, PRICE)))
 
     def join(self):
         self._thread.join()
@@ -120,7 +128,11 @@ class TradeEngine(gevent.Greenlet):
         if last_price > (previous_price * ((PERCENTAGE_CHANGE_PRICE[interval] + 100) / 100)) and \
            last_volume > (previous_volume * ((PERCENTAGE_CHANGE_VOLUME[interval] + 100) / 100)) and \
                 (interval == SLEEP_TIME or interval == SLEEP_TIME*2):
-            self.create_new_pump(ticker_symbol, previous_price, last_price, previous_volume, last_volume)
+            self.create_new_pump(ticker_symbol, previous_price, last_price,
+                                 self.get_target_quantity(
+                                     Config.instance().config[BTC_PUMP_QUANTITY],
+                                     last_price),
+                                 previous_volume, last_volume)
 
         change = pd.DataFrame({
             TIME: datetime.datetime.now(),
@@ -133,12 +145,19 @@ class TradeEngine(gevent.Greenlet):
         self._changes = self._changes.append(change)
         return pump
 
-    def create_new_pump(self, ticker_symbol, previous_price, last_price, previous_volume, last_volume):
-        pump = Pump(ticker_symbol=ticker_symbol, start_price=last_price,
-                    initial_pump_price_pct=self.get_percentage(previous_price, last_price),
-                    initial_pump_volume_pct=self.get_percentage(previous_volume, last_volume),
-                    amount_btc=100.0, stop_loss=100.0)
-        self.register_pump(pump)
+    def create_new_pump(self, ticker_symbol, previous_price, last_price, quantity, previous_volume, last_volume):
+
+        for pump in self._pumps:
+            if pump.ticker_symbol == ticker_symbol:
+                print("ticker symbol {0} already pumping".format(ticker_symbol))
+                return
+        self._order_client.create_order(ticker_symbol=ticker_symbol,
+                                        price=last_price,
+                                        quantity=quantity)
+        Dao.instance().save_pump(ticker_symbol=ticker_symbol, start_price=last_price,
+                                 initial_pump_price_pct=self.get_percentage(previous_price, last_price),
+                                 initial_pump_volume_pct=self.get_percentage(previous_volume, last_volume),
+                                 stop_loss=100.0)
 
     def report_changes(self):
 
@@ -278,6 +297,10 @@ class TradeEngine(gevent.Greenlet):
     def get_last_minus_n(self, ticker_symbol, what, n):
         return self._history[self._history[TICKER_SYMBOL] == ticker_symbol].tail(n+1).head(1)[what].values[0]
 
+    @staticmethod
+    def get_target_quantity(btc_quantity, last_price):
+        return float(btc_quantity) / last_price
+
     @classmethod
     def exists_ticker_symbol_in_trade_data(cls, ticker_symbol, ticker_symbols_trade_data):
         for info in ticker_symbols_trade_data:
@@ -292,15 +315,6 @@ class TradeEngine(gevent.Greenlet):
         else:
             _ticker_symbol = info[SYMBOL].replace(BTC, "")
         return _ticker_symbol
-
-    def register_pump(self, __pump):
-        for pump in self._pumps:
-            if pump.ticker_symbol == __pump.ticker_symbol:
-                print("ticker symbol {0} already pumping".format(__pump.ticker_symbol))
-                return
-        self._order_client.create_order(ticker_symbol=__pump.ticker_symbol,
-                                        price=__pump.last_price)
-        Dao.instance().save_new_pump(__pump)
 
     @classmethod
     def load_ticker_symbols(cls):

@@ -6,6 +6,13 @@ ROOT = os.path.dirname(os.path.realpath(__file__))
 CONFIG_DIR = "config"
 CONFIG_JSON = "config.json"
 
+DBUSER = "dbuser"
+DBPASSWORD = "dbpassword"
+DBHOST = "dbhost"
+DBNAME = "dbname"
+DBPORT = "dbport"
+
+BTC_PUMP_QUANTITY = "btc_pump_quantity"
 
 @Singleton
 class Config:
