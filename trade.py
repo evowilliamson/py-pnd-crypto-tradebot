@@ -77,7 +77,7 @@ class Trade:
         return trade_type
 
     def get_btc_quantity_for_trade(self, ticker_symbol):
-        quantity = USD_QUANTITY / self._trade_engine.get_last(BTC, PRICE)
+        quantity = USD_QUANTITY / self._trade_engine.get_current_trade_data(BTC, PRICE)
         print("Ticker symbol {0} btc quantity to buy: {1}".format(ticker_symbol, str(quantity)))
         return quantity
 

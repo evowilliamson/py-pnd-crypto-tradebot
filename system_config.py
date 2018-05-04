@@ -14,6 +14,7 @@ DBPORT = "dbport"
 
 BTC_PUMP_QUANTITY = "btc_pump_quantity"
 
+
 @Singleton
 class Config:
     """ Class that represents the configurations in this application."""

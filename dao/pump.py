@@ -1,5 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, DateTime, String, Boolean, Float
+import datetime
 
 
 class Pump(declarative_base()):
@@ -10,20 +11,31 @@ class Pump(declarative_base()):
     ticker_symbol = Column(String(255))
     start_time = Column(DateTime)
     quantity = Column(Float)
-    start_price = Column(Float)
-    initial_pump_price_pct = Column(Float)
-    initial_pump_volume_pct = Column(Float)
+    initial_price = Column(Float)
+    first_pump_price = Column(Float)
+    initial_volume = Column(Float)
+    first_pump_volume = Column(Float)
     stop_loss = Column(Float)
-    profit_pct = Column(Float)
     end_time = Column(DateTime)
     end_price = Column(Float)
+    profit_pct = Column(Float)
     status = Column(String(50))
 
-    def update_stop_loss(self, profit_pct, end_price, end_time, status):
-        self.profit_pct = profit_pct
+    def update(self, end_price, end_time, profit_pct, status):
         self.end_price = end_price
         self.end_time = end_time
+        self.profit_pct = profit_pct
         self.status = status
 
-
+    @staticmethod
+    def new(ticker_symbol, initial_price, first_pump_price, initial_volume,
+            first_pump_volume, quantity, stop_loss):
+        return Pump(ticker_symbol=ticker_symbol,
+                    initial_price=initial_price,
+                    first_pump_price=first_pump_price,
+                    initial_volume=initial_volume,
+                    first_pump_volume=first_pump_volume,
+                    quantity=quantity,
+                    stop_loss=stop_loss,
+                    start_time=datetime.datetime.now())
 

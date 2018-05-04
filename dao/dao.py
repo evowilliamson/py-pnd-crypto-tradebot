@@ -1,13 +1,15 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import datetime
 from dao.pump import Pump
 from singleton import Singleton
 from system_config import Config, DBUSER, DBHOST, DBPASSWORD, DBNAME, DBPORT
+from dao.pump_history import PumpHistory
 
 DB_URI = "mysql+mysqlconnector://{user}:{password}@{host}:{port}/{db}"
 
 STOP_LOSS_END = "ENDED, STOP LOSS HIT"
+CLOSED = "CLOSED"
+
 
 @Singleton
 class Dao:
@@ -28,18 +30,19 @@ class Dao:
     def get_all_running_pumps(self):
         return self._session.query(Pump).filter_by(end_time=None).all()
 
-    def save_pump(self, ticker_symbol, start_price, quantity,
-                  initial_pump_price_pct, initial_pump_volume_pct, stop_loss):
-        pump_orm = Pump(ticker_symbol=ticker_symbol, start_time=datetime.datetime.now(),
-                        start_price=float(str(start_price)), quantity=float(str(quantity)),
-                        initial_pump_price_pct=float(str(initial_pump_price_pct)),
-                        initial_pump_volume_pct=float(str(initial_pump_volume_pct)),
-                        stop_loss=float(str(stop_loss)))
-        self._session.add(pump_orm)
+    def save_pump(self, data_pump):
+        self._session.add(data_pump)
         self._session.commit()
 
-    def update_pump_stop_loss(self, pump_orm, pump):
-        pump_orm.update_stop_loss(pump.profit_pct, pump.end_price, pump.end_time, pump.status)
+    def save_pump_history(self, pump_id, price, volume):
+        self._session.add(PumpHistory.new(pump_id, price, volume))
         self._session.commit()
+
+    def close_pump(self, data_pump):
+        data_pump.status = CLOSED
+        data_pump.update()
+        self._session.commit()
+
+
 
 

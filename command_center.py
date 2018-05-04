@@ -6,10 +6,10 @@ class CommandCenter:
 
     def __init__(self, trade_engine):
         self._trade_engine = trade_engine
-        self._thread = threading.Thread(target=self.do_run)
+        self._thread = threading.Thread(target=self.run)
         self._thread.start()
 
-    def do_run(self):
+    def run(self):
         while True:
             input_console = input("> ")
             self.set_if_list_mode(input_console)
