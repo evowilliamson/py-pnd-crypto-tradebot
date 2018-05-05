@@ -29,7 +29,7 @@ class Pump(declarative_base()):
 
     @staticmethod
     def new(ticker_symbol, initial_price, first_pump_price, initial_volume,
-            first_pump_volume, quantity, stop_loss):
+            first_pump_volume, quantity, stop_loss, status):
         return Pump(ticker_symbol=ticker_symbol,
                     initial_price=initial_price,
                     first_pump_price=first_pump_price,
@@ -37,5 +37,6 @@ class Pump(declarative_base()):
                     first_pump_volume=first_pump_volume,
                     quantity=quantity,
                     stop_loss=stop_loss,
-                    start_time=datetime.datetime.now())
+                    start_time=datetime.datetime.now(),
+                    status=status)
 

@@ -3,12 +3,13 @@ from sqlalchemy.orm import sessionmaker
 from dao.pump import Pump
 from singleton import Singleton
 from system_config import Config, DBUSER, DBHOST, DBPASSWORD, DBNAME, DBPORT
-from dao.pump_history import PumpHistory
+from dao.pump_history import PumpDetails
 
 DB_URI = "mysql+mysqlconnector://{user}:{password}@{host}:{port}/{db}"
 
 STOP_LOSS_END = "ENDED, STOP LOSS HIT"
 CLOSED = "CLOSED"
+RUNNING = "RUNNING"
 
 
 @Singleton
@@ -34,8 +35,8 @@ class Dao:
         self._session.add(data_pump)
         self._session.commit()
 
-    def save_pump_history(self, pump_id, price, volume):
-        self._session.add(PumpHistory.new(pump_id, price, volume))
+    def save_pump_details(self, pump_id, price, volume):
+        self._session.add(PumpDetails.new(pump_id, price, volume))
         self._session.commit()
 
     def close_pump(self, data_pump):

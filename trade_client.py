@@ -5,11 +5,10 @@ import json
 BINANCE_KEY = "binance_key"
 BINANCE_SECRET = "binance_secret"
 TICKER_SYMBOL = "ticker_symbol"
-
-LAST_PRICE = "lastPrice"
-CURRENT_VOLUME = "quoteVolume"
-
 SYMBOLS = "symbols"
+
+PRICE = "lastPrice"
+VOLUME = "quoteVolume"
 
 
 @Singleton
@@ -31,8 +30,8 @@ class TradeClient:
     def get_trade_data_all_symbols(self):
         return self.client.get_ticker()
 
-    def get_trade_data(self, ticker_symbol):
-        return self.client.get_symbol_ticker(ticker_symbol)
+    def get_trade_data(self, ticker_symbol_in_market):
+        return self.client.get_ticker(symbol=ticker_symbol_in_market)
 
     def get_symbols(self):
         return self.client.get_exchange_info()[SYMBOLS]

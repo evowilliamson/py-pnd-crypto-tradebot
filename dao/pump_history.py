@@ -3,10 +3,10 @@ from sqlalchemy import Column, Integer, DateTime, String, Boolean, Float
 import datetime
 
 
-class PumpHistory(declarative_base()):
+class PumpDetails(declarative_base()):
     """ This dao class represents the pump history entity in the database """
 
-    __tablename__ = 'pump_history'
+    __tablename__ = 'pump_details'
     id = Column(Integer, primary_key=True, autoincrement=True)
     pump_id = Column(Integer)
     timestamp = Column(DateTime)
@@ -15,7 +15,7 @@ class PumpHistory(declarative_base()):
 
     @staticmethod
     def new(pump_id, price, volume):
-        return PumpHistory(
+        return PumpDetails(
                     pump_id=pump_id,
                     timestamp=datetime.datetime.now(),
                     price=price,

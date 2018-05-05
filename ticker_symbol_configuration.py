@@ -134,7 +134,7 @@ class TickerSymbolConfiguration:
         return ticker_symbol
 
     @staticmethod
-    def get_trade_data_ticker_symbol(ticker_symbol):
+    def get_ticker_symbol_in_market(ticker_symbol):
         if ticker_symbol == BTC:
             return BTCUSD
         else:
