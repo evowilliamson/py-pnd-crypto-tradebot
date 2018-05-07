@@ -14,11 +14,6 @@ class TickerSymbolConfiguration:
     def __init__(self):
         self._ticker_symbols = self.load_from_configuration()
 
-    def exists_in_configuration(self, ticker_symbol):
-        for _ticker_symbol in self.ticker_symbols:
-            if _ticker_symbol == ticker_symbol:
-                return True
-        return False
 
     @classmethod
     def load_from_configuration(cls):
@@ -140,9 +135,9 @@ class TickerSymbolConfiguration:
         else:
             return ticker_symbol + BTC
 
-    def consider_ticket(self, ticker_symbol):
-        for __ticker_symbol in self.ticker_symbols:
-            if __ticker_symbol == ticker_symbol:
+    def exists_in_configuration(self, ticker_symbol):
+        for _ticker_symbol in self.ticker_symbols:
+            if _ticker_symbol == ticker_symbol:
                 return True
         return False
 

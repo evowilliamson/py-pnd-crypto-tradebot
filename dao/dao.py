@@ -4,6 +4,7 @@ from dao.pump import Pump
 from singleton import Singleton
 from system_config import Config, DBUSER, DBHOST, DBPASSWORD, DBNAME, DBPORT
 from dao.pump_history import PumpDetails
+import datetime
 
 DB_URI = "mysql+mysqlconnector://{user}:{password}@{host}:{port}/{db}"
 
@@ -26,24 +27,39 @@ class Dao:
             db=config.config[DBNAME]
         ))
         self.Session = sessionmaker(bind=self._engine)
-        self._session = self.Session()
 
     def get_all_running_pumps(self):
-        return self._session.query(Pump).filter_by(end_time=None).all()
+        session = self.Session()
+        return session.query(Pump).filter_by(status=RUNNING).all()
 
     def save_pump(self, data_pump):
-        self._session.add(data_pump)
-        self._session.commit()
+        session = self.Session()
+        session.add(data_pump)
+        session.commit()
 
     def save_pump_details(self, pump_id, price, volume):
-        self._session.add(PumpDetails.new(pump_id, price, volume))
-        self._session.commit()
+        session = self.Session()
+        session.add(PumpDetails.new(pump_id, price, volume))
+        session.commit()
 
     def close_pump(self, data_pump):
-        data_pump.status = CLOSED
-        data_pump.update()
-        self._session.commit()
+        session = self.Session()
+        persisted_data_pump = session.query(Pump).filter_by(id=data_pump.id).one()
+        persisted_data_pump.update(
+            end_price=data_pump.end_price,
+            end_time=datetime.datetime.now(),
+            profit_pct=data_pump.profit_pct,
+            status=CLOSED,
+            stop_loss=persisted_data_pump.stop_loss)
+        session.commit()
 
-
-
-
+    def update_stop_loss(self, data_pump):
+        session = self.Session()
+        persisted_data_pump = session.query(Pump).filter_by(id=data_pump.id).one()
+        persisted_data_pump.update(
+            end_price=persisted_data_pump.end_price,
+            end_time=persisted_data_pump.end_time,
+            profit_pct=persisted_data_pump.profit_pct,
+            status=persisted_data_pump.status,
+            stop_loss=data_pump.stop_loss)
+        session.commit()

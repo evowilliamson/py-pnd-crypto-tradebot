@@ -13,6 +13,7 @@ class Pump(declarative_base()):
     quantity = Column(Float)
     initial_price = Column(Float)
     first_pump_price = Column(Float)
+    buy_price = Column(Float)
     initial_volume = Column(Float)
     first_pump_volume = Column(Float)
     stop_loss = Column(Float)
@@ -21,18 +22,20 @@ class Pump(declarative_base()):
     profit_pct = Column(Float)
     status = Column(String(50))
 
-    def update(self, end_price, end_time, profit_pct, status):
+    def update(self, end_price, end_time, profit_pct, status, stop_loss):
         self.end_price = end_price
         self.end_time = end_time
         self.profit_pct = profit_pct
         self.status = status
+        self.stop_loss = stop_loss
 
     @staticmethod
-    def new(ticker_symbol, initial_price, first_pump_price, initial_volume,
+    def new(ticker_symbol, initial_price, first_pump_price, buy_price, initial_volume,
             first_pump_volume, quantity, stop_loss, status):
         return Pump(ticker_symbol=ticker_symbol,
                     initial_price=initial_price,
                     first_pump_price=first_pump_price,
+                    buy_price=buy_price,
                     initial_volume=initial_volume,
                     first_pump_volume=first_pump_volume,
                     quantity=quantity,

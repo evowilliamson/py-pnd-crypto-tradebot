@@ -28,7 +28,12 @@ class TradeClient:
         return json.load(open('/home/ivo/trade_bot/config.json'))
 
     def get_trade_data_all_symbols(self):
-        return self.client.get_ticker()
+        temp = self.client.get_ticker()
+        # result = []
+        # for i in temp:
+        #     if i["symbol"] in ["ETHBTC", "LTCBTC", "EOSBTC"]:
+        #         result.append(i)
+        return temp
 
     def get_trade_data(self, ticker_symbol_in_market):
         return self.client.get_ticker(symbol=ticker_symbol_in_market)

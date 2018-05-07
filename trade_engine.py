@@ -24,15 +24,11 @@ ROWS_PER_COLUMN = 10
 INTERVAL_CHANGE_MESSAGE = "{0}: Change {1}: price: {2}, volume {3}"
 STEP_CHANGE_MESSAGE = "{0}: step change: step start price: {1}, current price: {2}"
 
-PRICE_PERCENTAGE_CHANGE_PUMP = 0.005
-VOLUME_PERCENTAGE_CHANGE_PUMP = 0.005
-PRICE_PERCENTAGE_CHANGE_STEP = 0.05
-VOLUME_MEAN_PERCENTAGE_CHANGE_STEP = 0.05
 STEP_SIZE = 5
 NUMBER_OF_COLUMNS = 3
 FIRST_ROW = 1
 
-SLEEP_TIME = 5
+SLEEP_TIME = 20
 CANDLE_STICKS_PER_MINUTE = 60 / SLEEP_TIME
 
 INTERVALS = [1*SLEEP_TIME, 2*SLEEP_TIME, 5*SLEEP_TIME, 10*SLEEP_TIME, 20*SLEEP_TIME,
@@ -42,13 +38,11 @@ GAINERS = "gainers"
 LOSERS = "losers"
 LIST_MODES = [GAINERS, LOSERS]
 
-PUMP_UPTICK_PRICE_PCT = 1.0
-
-PERCENTAGE_CHANGE_PRICE = {1*SLEEP_TIME: 0.01, 2*SLEEP_TIME: 1.25, 5*SLEEP_TIME: 0.0,
+PERCENTAGE_CHANGE_PRICE = {1*SLEEP_TIME: 0.5, 2*SLEEP_TIME: 1.0, 5*SLEEP_TIME: 0.0,
                            10*SLEEP_TIME: 0.0, 20*SLEEP_TIME: 0.0, 60*SLEEP_TIME: 0.0,
                            120*SLEEP_TIME: 0.0, 240 * SLEEP_TIME: 0.0, 480 * SLEEP_TIME: 0.0}
 
-PERCENTAGE_CHANGE_VOLUME = {1*SLEEP_TIME: 0.001, 2*SLEEP_TIME: 0.5, 5*SLEEP_TIME: 0.0,
+PERCENTAGE_CHANGE_VOLUME = {1*SLEEP_TIME: 0.1, 2*SLEEP_TIME: 0.2, 5*SLEEP_TIME: 0.0,
                             10*SLEEP_TIME: 0.0, 20*SLEEP_TIME: 0.0, 60*SLEEP_TIME: 0.0,
                             120*SLEEP_TIME: 0.0, 240 * SLEEP_TIME: 0.0, 480 * SLEEP_TIME: 0.0}
 
@@ -69,7 +63,7 @@ class TradeEngine:
         self._list_mode = GAINERS
         self._trades = []
         self.cross_check_ticker_symbols()
-        self._pumpers = Pumper.reconstruct_running_pumps()
+        self._pumpers = Pumper.reconstruct_running_pumps(self)
         self._ignore = False
         self._thread.start()
 
@@ -79,9 +73,12 @@ class TradeEngine:
             for ticker_symbol in self._ticker_symbols:
                 for i in INTERVALS:
                     self.check_change_interval(ticker_symbol, i)
+            # if not self._ignore:
             self.report_changes()
             self._changes = pd.DataFrame()
             time.sleep(SLEEP_TIME)
+            # self._ignore = True
+            print("Number of pumpers: {0}".format(len(self.pumpers)))
 
     def join(self):
         self._thread.join()
@@ -135,15 +132,12 @@ class TradeEngine:
     def create_new_pump(self, ticker_symbol, initial_price,
                         first_pump_price, initial_volume, first_pump_volume, quantity):
 
-        if self._ignore:
-            return
-
         self._ignore = True
         for pump in self._pumpers:
             if pump.ticker_symbol == ticker_symbol:
                 print("ticker symbol {0} already pumping".format(ticker_symbol))
                 return
-        self._pumpers.append(Pumper(ticker_symbol=ticker_symbol, initial_price=initial_price,
+        self._pumpers.append(Pumper(self, ticker_symbol=ticker_symbol, initial_price=initial_price,
                                     first_pump_price=first_pump_price, initial_volume=initial_volume,
                                     first_pump_volume=first_pump_volume, quantity=quantity))
 
@@ -267,3 +261,7 @@ class TradeEngine:
     @property
     def historical_trade_data(self):
         return self._historical_trade_data
+
+    @property
+    def pumpers(self):
+        return self._pumpers

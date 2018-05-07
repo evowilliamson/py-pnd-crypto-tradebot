@@ -23,14 +23,13 @@ class TradeData:
             ticker_symbol = TickerSymbolConfiguration.instance().get_adjusted_trade_data_ticker_symbol(data)
             if not TickerSymbolConfiguration.instance().exists_in_configuration(ticker_symbol):
                 continue
-            if TickerSymbolConfiguration.instance().consider_ticket(ticker_symbol):
-                row = pd.DataFrame({
-                    TIME: datetime.datetime.now(),
-                    TICKER_SYMBOL: {VALUE: ticker_symbol},
-                    trade_data.PRICE: {VALUE: float(data[trade_client.PRICE])},
-                    trade_data.VOLUME: {VALUE: float(data[trade_client.VOLUME])}})
-                row = row.set_index([TIME])
-                df = df.append(row)
+            row = pd.DataFrame({
+                TIME: datetime.datetime.now(),
+                TICKER_SYMBOL: {VALUE: ticker_symbol},
+                trade_data.PRICE: {VALUE: float(data[trade_client.PRICE])},
+                trade_data.VOLUME: {VALUE: float(data[trade_client.VOLUME])}})
+            row = row.set_index([TIME])
+            df = df.append(row)
         return df
 
     @staticmethod
