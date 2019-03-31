@@ -25,7 +25,7 @@ class TradeClient:
 
     @classmethod
     def read_binance_keys(cls):
-        return json.load(open('/home/ivo/trade_bot/config.json'))
+        return json.load(open('/home/ivo/tradebot-python/config.json'))
 
     def get_trade_data_all_symbols(self):
         temp = self.client.get_ticker()
