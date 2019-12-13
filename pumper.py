@@ -1,6 +1,6 @@
 import threading
 from dao.dao import Dao, RUNNING
-from dao.pump import Pump
+from dao.dao import Pump
 import time
 from ticker_symbol_configuration import TickerSymbolConfiguration
 from trade_client import TradeClient
@@ -31,9 +31,6 @@ class Pumper:
         self._thread.start()
 
     def run(self):
-        # self._order_client.create_order(ticker_symbol= self._ticker_symbol,
-        #                                 price=self._initial_price,
-        #                                 quantity=self._quantity)
         while True:
             data = self.get_trade_data()
             if not data:

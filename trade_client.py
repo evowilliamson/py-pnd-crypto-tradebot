@@ -25,7 +25,8 @@ class TradeClient:
 
     @classmethod
     def read_binance_keys(cls):
-        return json.load(open('config/config.json'))
+        #cryptoairdrop001@protonmailcom
+        return json.load(open('config/binance.config.json'))
 
     def get_trade_data_all_symbols(self):
         temp = self.client.get_ticker()

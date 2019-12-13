@@ -23,7 +23,7 @@ INTERVAL_CHANGE_MESSAGE = "{0}: Change {1}: price: {2}, volume {3}"
 STEP_CHANGE_MESSAGE = "{0}: step change: step start price: {1}, current price: {2}"
 
 STEP_SIZE = 5
-NUMBER_OF_COLUMNS = 3
+NUMBER_OF_COLUMNS = 1
 FIRST_ROW = 1
 
 SLEEP_TIME = 20
@@ -44,16 +44,15 @@ PERCENTAGE_CHANGE_VOLUME = {1*SLEEP_TIME: 0.1, 2*SLEEP_TIME: 0.2, 5*SLEEP_TIME: 
                             10*SLEEP_TIME: 0.0, 20*SLEEP_TIME: 0.0, 60*SLEEP_TIME: 0.0,
                             120*SLEEP_TIME: 0.0, 240 * SLEEP_TIME: 0.0, 480 * SLEEP_TIME: 0.0}
 
-INTERVAL_TO_COLUMN_NO = {1*SLEEP_TIME: 1, 2*SLEEP_TIME: 2, 5*SLEEP_TIME: 3,
-                         10*SLEEP_TIME: 1, 20*SLEEP_TIME: 2, 60*SLEEP_TIME: 3,
-                         120*SLEEP_TIME: 1, 240 * SLEEP_TIME: 2, 480 * SLEEP_TIME: 3}
+INTERVAL_TO_COLUMN_NO = {1*SLEEP_TIME: 1, 2*SLEEP_TIME: 1, 5*SLEEP_TIME: 1,
+                         10*SLEEP_TIME: 1, 20*SLEEP_TIME: 1, 60*SLEEP_TIME: 1,
+                         120*SLEEP_TIME: 1, 240 * SLEEP_TIME: 1, 480 * SLEEP_TIME: 1}
 
 
 @Singleton
 class TradeEngine:
 
-    def __init__(self, order_client):
-        self._order_client = order_client
+    def __init__(self):
         self._thread = threading.Thread(target=self.run)
         self._ticker_symbols = TickerSymbolConfiguration.instance().load_from_configuration()
         self._historical_trade_data = pd.DataFrame()
@@ -146,11 +145,6 @@ class TradeEngine:
 
         pumps = self._changes[self._changes[PUMP]]
         if not pumps.empty:
-            for interval in range(1, 1000):
-                print("*************************************************************************************")
-                print("")
-                print("*************************************************************************************")
-                print("")
             print("*************************************************************************************")
             print("Pump detected !!!! ")
             print("*************************************************************************************")
@@ -159,9 +153,9 @@ class TradeEngine:
         self._changes = self._changes.sort_values(by=[INTERVAL, trade_data.PRICE],
                                                   ascending=[True, sort_order])
         line = ""
-        for block in range(0, int(len(INTERVALS)/NUMBER_OF_COLUMNS)):
+        for block in range(0, len(INTERVALS)):
             for row_no in range(1, ROWS_PER_COLUMN):
-                self.print_row(line, row_no, INTERVALS[block * NUMBER_OF_COLUMNS:(block + 1) * NUMBER_OF_COLUMNS])
+                self.print_row(line, row_no, INTERVALS[block:(block + 1)])
 
     def print_row(self, line, row_no, intervals):
         header_line = ""
@@ -193,41 +187,6 @@ class TradeEngine:
     @staticmethod
     def get_percentage(start, end):
         return ((end - start) / start) * 100.0
-
-    # def check_n_step_change(self, ticker_symbol):
-    #     """
-    #     This method checks whether there is a step-wise price increase. Over n-periods, a check is made
-    #     to see whether there is an ever-increasing pattern, where the volume of n-periods is at least greater
-    #     than the average volumne of the (t-now - square(n) periods) until the (t-now - n periods)
-    #     """
-    #
-    #     if TradeData.get_number_of_rows(self.trade_data, ticker_symbol) < np.square(STEP_SIZE):
-    #         return None
-    #
-    #     historical_volume_mean = \
-    #         self.trade_data[self.trade_data[TICKER_SYMBOL] == ticker_symbol] \
-    #             .tail(np.square(STEP_SIZE)).head(np.square(STEP_SIZE)-STEP_SIZE)[VOLUME].mean()
-    #
-    #     start_price = self.trade_data[self.trade_data[TICKER_SYMBOL] == ticker_symbol] \
-    #                       .tail(STEP_SIZE+1).head(1)[PRICE].values[0]
-    #     for i in reversed(range(STEP_SIZE, 0, -1)):
-    #         price = self.\
-    #                 _trade_data[self.trade_data[TICKER_SYMBOL] == ticker_symbol].tail
-    # (STEP_SIZE - i + 1).head(1)[PRICE].values[0]
-    #         if price < (start_price * ((PRICE_PERCENTAGE_CHANGE_STEP + 100) / 100)):
-    #             return None
-    #         start_price = price
-    #         volume = self.trade_data[self.trade_data[TICKER_SYMBOL] == ticker_symbol].tail(STEP_SIZE - i + 1) \
-    #                                    .head(1)[VOLUME].values[0]
-    #         if volume < (historical_volume_mean * ((VOLUME_MEAN_PERCENTAGE_CHANGE_STEP + 100) / 100)):
-    #             return None
-    #
-    #     print(str(datetime.datetime.now()))
-    #     print(STEP_CHANGE_MESSAGE.format(ticker_symbol, start_price, self.
-    #                                      _trade_data[self.trade_data[TICKER_SYMBOL] ==
-    # ticker_symbol].tail(1)[PRICE].values[0]))
-    #
-    #     return TradeDirection.UP
 
     def cross_check_ticker_symbols(self):
         symbols = TradeClient.instance().get_symbols()
