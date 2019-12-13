@@ -6,15 +6,10 @@ class Singleton:
         self._decorated = decorated
         self._instance = None
 
-    def instance(self, *args):
-        """ method that creates the (only) instance ever available. """
+    def __call__(self, *args):
         if not self._instance:
             self._instance = self._decorated(*args)
         return self._instance
-
-    def __call__(self):
-        """ Method to enfornce that a Singleton object can be only created by calling `instance()`. """
-        raise TypeError('Singletons must be accessed through `instance()`.')
 
     def __instancecheck__(self, inst):
         """ Method that can be used to check whether the object is of the expected type.

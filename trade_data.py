@@ -9,7 +9,6 @@ TIME = "time"
 PENULTIMATE = 2
 TICKER_SYMBOL = "ticker_symbol"
 VALUE = "value"
-
 PRICE = "price"
 VOLUME = "volume"
 
@@ -19,9 +18,9 @@ class TradeData:
     @staticmethod
     def get_data_for_all_symbol():
         df = pd.DataFrame()
-        for data in TradeClient.instance().get_trade_data_all_symbols():
-            ticker_symbol = TickerSymbolConfiguration.instance().get_adjusted_trade_data_ticker_symbol(data)
-            if not TickerSymbolConfiguration.instance().exists_in_configuration(ticker_symbol):
+        for data in TradeClient().get_trade_data_all_symbols():
+            ticker_symbol = TickerSymbolConfiguration().get_adjusted_trade_data_ticker_symbol(data)
+            if not TickerSymbolConfiguration().exists_in_configuration(ticker_symbol):
                 continue
             row = pd.DataFrame({
                 TIME: datetime.datetime.now(),

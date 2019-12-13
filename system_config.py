@@ -23,8 +23,7 @@ class Config:
         """ Default constructor """
         self._config = self.load()
 
-    @staticmethod
-    def load():
+    def load(self):
         with open(os.path.join(ROOT, CONFIG_DIR, CONFIG_JSON)) as f:
             config = json.load(f)
         return config

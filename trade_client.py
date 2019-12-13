@@ -15,17 +15,11 @@ VOLUME = "quoteVolume"
 class TradeClient:
 
     def __init__(self):
-        self._config = None
-        self._client = None
-        self.use_binance()
-
-    def use_binance(self):
         self._config = self.read_binance_keys()
         self._client = Client(self._config[BINANCE_KEY], self._config[BINANCE_SECRET])
 
-    @classmethod
-    def read_binance_keys(cls):
-        #cryptoairdrop001@protonmailcom
+    def read_binance_keys(self):
+        #cryptoairdrop001@protonmail.com
         return json.load(open('config/binance.config.json'))
 
     def get_trade_data_all_symbols(self):

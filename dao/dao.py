@@ -80,7 +80,7 @@ class Dao:
     """ This class contains the logic that takes care of interaction with the database """
 
     def __init__(self):
-        config = Config.instance()
+        config = Config()
         # Mysql
         # self._engine = create_engine(DB_URI_MYSQL.format(
         #     user=config.config[DBUSER],

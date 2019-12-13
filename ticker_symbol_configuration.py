@@ -120,16 +120,14 @@ class TickerSymbolConfiguration:
             'MAID'
         ]]
 
-    @staticmethod
-    def get_adjusted_trade_data_ticker_symbol(info):
+    def get_adjusted_trade_data_ticker_symbol(self, info):
         if info[SYMBOL] == BTCUSD:
             ticker_symbol = info[SYMBOL].replace(USDT, "")
         else:
             ticker_symbol = info[SYMBOL].replace(BTC, "")
         return ticker_symbol
 
-    @staticmethod
-    def get_ticker_symbol_in_market(ticker_symbol):
+    def get_ticker_symbol_in_market(self, ticker_symbol):
         if ticker_symbol == BTC:
             return BTCUSD
         else:

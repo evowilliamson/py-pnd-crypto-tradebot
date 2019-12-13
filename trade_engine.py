@@ -11,30 +11,21 @@ from trade_data import TradeData
 import trade_data
 
 TIME = "time"
-
 VALUE = "value"
-PENULTIMATE = 2
 INTERVAL = "interval"
 PUMP = "pump"
+GAINERS = "gainers"
+LOSERS = "losers"
 
 ROWS_PER_COLUMN = 10
-
-INTERVAL_CHANGE_MESSAGE = "{0}: Change {1}: price: {2}, volume {3}"
-STEP_CHANGE_MESSAGE = "{0}: step change: step start price: {1}, current price: {2}"
-
 STEP_SIZE = 5
 NUMBER_OF_COLUMNS = 1
 FIRST_ROW = 1
-
 SLEEP_TIME = 20
 CANDLE_STICKS_PER_MINUTE = 60 / SLEEP_TIME
 
 INTERVALS = [1*SLEEP_TIME, 2*SLEEP_TIME, 5*SLEEP_TIME, 10*SLEEP_TIME, 20*SLEEP_TIME,
              60*SLEEP_TIME, 120*SLEEP_TIME, 240*SLEEP_TIME, 480*SLEEP_TIME]
-
-GAINERS = "gainers"
-LOSERS = "losers"
-LIST_MODES = [GAINERS, LOSERS]
 
 PERCENTAGE_CHANGE_PRICE = {1*SLEEP_TIME: 0.5, 2*SLEEP_TIME: 1.0, 5*SLEEP_TIME: 0.0,
                            10*SLEEP_TIME: 0.0, 20*SLEEP_TIME: 0.0, 60*SLEEP_TIME: 0.0,
@@ -54,7 +45,7 @@ class TradeEngine:
 
     def __init__(self):
         self._thread = threading.Thread(target=self.run)
-        self._ticker_symbols = TickerSymbolConfiguration.instance().load_from_configuration()
+        self._ticker_symbols = TickerSymbolConfiguration().load_from_configuration()
         self._historical_trade_data = pd.DataFrame()
         self._changes = pd.DataFrame()
         self._list_mode = GAINERS
@@ -70,11 +61,9 @@ class TradeEngine:
             for ticker_symbol in self._ticker_symbols:
                 for i in INTERVALS:
                     self.check_change_interval(ticker_symbol, i)
-            # if not self._ignore:
             self.report_changes()
             self._changes = pd.DataFrame()
             time.sleep(SLEEP_TIME)
-            # self._ignore = True
             print("Number of pumpers: {0}".format(len(self.pumpers)))
 
     def join(self):
@@ -108,7 +97,7 @@ class TradeEngine:
                                  initial_volume=initial_volume,
                                  first_pump_volume=first_pump_volume,
                                  quantity=self.get_target_quantity(
-                                                Config.instance().config[BTC_PUMP_QUANTITY],
+                                                Config().config[BTC_PUMP_QUANTITY],
                                                 first_pump_price))
 
         self.add_change_interval(interval, first_pump_price, first_pump_volume, initial_price, initial_volume, pump,
@@ -189,10 +178,10 @@ class TradeEngine:
         return ((end - start) / start) * 100.0
 
     def cross_check_ticker_symbols(self):
-        symbols = TradeClient.instance().get_symbols()
+        symbols = TradeClient().get_symbols()
         for info in symbols:
-            ticker_symbol = TickerSymbolConfiguration.instance().get_adjusted_trade_data_ticker_symbol(info)
-            if not TickerSymbolConfiguration.instance().exists_in_configuration(ticker_symbol):
+            ticker_symbol = TickerSymbolConfiguration().get_adjusted_trade_data_ticker_symbol(info)
+            if not TickerSymbolConfiguration().exists_in_configuration(ticker_symbol):
                 print("Ticker symbol {0} found in trade data is not a configured ticker symbol".format(ticker_symbol))
 
         temp_ticker_symbols = []
@@ -211,7 +200,7 @@ class TradeEngine:
     @classmethod
     def exists_ticker_symbol_in_trade_data(cls, ticker_symbol, ticker_symbols_trade_data):
         for info in ticker_symbols_trade_data:
-            if TickerSymbolConfiguration.instance().get_adjusted_trade_data_ticker_symbol(info) == ticker_symbol:
+            if TickerSymbolConfiguration().get_adjusted_trade_data_ticker_symbol(info) == ticker_symbol:
                 return True
         return False
 

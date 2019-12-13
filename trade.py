@@ -24,7 +24,7 @@ class Trade:
         self._ticker_symbol = ticker_symbol
         self._previous_price = previous_price
         self._last_price = last_price
-        self._client = System.instance().trade_client
+        self._client = System().trade_client
         self._trade_engine = trade_engine
         self.trade()
 
