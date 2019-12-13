@@ -2,8 +2,6 @@ from singleton import Singleton
 import time
 import datetime
 import pandas as pd
-# import numpy as np
-# from trade import TradeDirection
 import threading
 from system_config import Config, BTC_PUMP_QUANTITY
 from pumper import Pumper
