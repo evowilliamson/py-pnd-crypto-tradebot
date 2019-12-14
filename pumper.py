@@ -57,31 +57,32 @@ class Pumper:
 
     def check_stop_loss(self, data):
         current_price = float(data[trade_client.PRICE])
-        if current_price < self._data_pump.stop_loss:
+        if current_price < self._data_pump["stop_loss"]:
             print("Ticker symbol {0}, just tell through stop loss {1}, "
                   "perceived loss in btc value = {2}".format(
-                        self._data_pump.ticker_symbol,
-                        self._data_pump.stop_loss,
-                        (current_price - self._data_pump.initial_price) * float(self._data_pump.quantity)))
+                        self._data_pump["ticker_symbol"],
+                        self._data_pump["stop_loss"],
+                        (current_price - self._data_pump["initial_price"]) * float(self._data_pump["quantity"])))
             return True
         else:
             return False
 
     def adjust_stop_loss(self, data):
         current_price = float(data[trade_client.PRICE])
-        old_stop_loss = self._data_pump.stop_loss
-        if self._data_pump.start_time + datetime.timedelta(minutes=1) < datetime.datetime.now():
-            self._data_pump.stop_loss = max(self._data_pump.stop_loss, current_price * 0.95)
-            if old_stop_loss < self._data_pump.stop_loss:
+        old_stop_loss = self._data_pump["stop_loss"]
+        if self._data_pump["start_time"] + datetime.timedelta(minutes=1) < datetime.datetime.now():
+            self._data_pump["stop_loss"] = max(self._data_pump["stop_loss"], current_price * 0.95)
+            if old_stop_loss < self._data_pump["stop_loss"]:
                 print("Stop loss of ticker symbol {} adjusted to {}".
-                      format(self.ticker_symbol, self._data_pump.stop_loss))
+                      format(self.ticker_symbol, self._data_pump["stop_loss"]))
                 dao().update_stop_loss(self._data_pump)
 
     def close(self, data):
-        print("Closing pump {0}".format(self._data_pump.ticker_symbol))
-        self._data_pump.end_price = float(data[trade_client.PRICE])
-        self._data_pump.profit_pct = \
-            ((self._data_pump.end_price - self._data_pump.initial_price) / self._data_pump.initial_price) * 100.0
+        print("Closing pump {0}".format(self._data_pump["ticker_symbol"]))
+        self._data_pump["end_price"] = float(data[trade_client.PRICE])
+        self._data_pump["profit_pct"] = \
+            ((self._data_pump["end_price"] - self._data_pump["initial_price"]) / 
+              self._data_pump["initial_price"]) * 100.0
         dao().close_pump(self._data_pump)
         self.pumpers.remove(self)
 
@@ -90,11 +91,11 @@ class Pumper:
 
     @property
     def ticker_symbol(self):
-        return self._data_pump.ticker_symbol
+        return self._data_pump["ticker_symbol"]
 
     @property
     def pump_id(self):
-        return self._data_pump.id
+        return self._data_pump["id"]
 
     @property
     def trade_engine(self):

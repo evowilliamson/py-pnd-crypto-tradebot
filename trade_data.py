@@ -16,7 +16,7 @@ VOLUME = "volume"
 class TradeData:
 
     @staticmethod
-    def get_data_for_all_symbol():
+    def get_data_for_all_symbols():
         df = pd.DataFrame()
         for data in TradeClient().get_trade_data_all_symbols():
             ticker_symbol = TickerSymbolConfiguration().get_adjusted_trade_data_ticker_symbol(data)

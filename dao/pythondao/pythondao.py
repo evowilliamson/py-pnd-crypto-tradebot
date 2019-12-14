@@ -20,6 +20,7 @@ class PythonDao(object):
         lock.acquire()
         pump_id = max(self._pumps, default=0, key=int) + 1
         pump["id"] = pump_id
+        pump["start_time"] = datetime.datetime.now()
         self._pumps[pump_id] = pump
         lock.release()
         return pump
@@ -46,3 +47,6 @@ class PythonDao(object):
         lock.acquire()        
         self._pumps = {}
         lock.release()
+
+    def get_all_running_pumps(self):
+        return self._pumps.values()

@@ -12,13 +12,8 @@ BTCUSD = BTC + USDT
 class TickerSymbolConfiguration:
 
     def __init__(self):
-        self._ticker_symbols = self.load_from_configuration()
-
-
-    @classmethod
-    def load_from_configuration(cls):
-
-        return [ticker.strip() for ticker in [
+        self._ticker_symbols = [ticker.strip() for ticker in 
+        [
             'BTC',
             'ETH',
             'XRP',

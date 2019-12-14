@@ -27,7 +27,7 @@ CANDLE_STICKS_PER_MINUTE = 60 / SLEEP_TIME
 INTERVALS = [1*SLEEP_TIME, 2*SLEEP_TIME, 5*SLEEP_TIME, 10*SLEEP_TIME, 20*SLEEP_TIME,
              60*SLEEP_TIME, 120*SLEEP_TIME, 240*SLEEP_TIME, 480*SLEEP_TIME]
 
-PERCENTAGE_CHANGE_PRICE = {1*SLEEP_TIME: 0.5, 2*SLEEP_TIME: 1.0, 5*SLEEP_TIME: 0.0,
+PERCENTAGE_CHANGE_PRICE = {1*SLEEP_TIME: 0.1, 2*SLEEP_TIME: 1.0, 5*SLEEP_TIME: 0.0,
                            10*SLEEP_TIME: 0.0, 20*SLEEP_TIME: 0.0, 60*SLEEP_TIME: 0.0,
                            120*SLEEP_TIME: 0.0, 240 * SLEEP_TIME: 0.0, 480 * SLEEP_TIME: 0.0}
 
@@ -45,7 +45,7 @@ class TradeEngine:
 
     def __init__(self):
         self._thread = threading.Thread(target=self.run)
-        self._ticker_symbols = TickerSymbolConfiguration().load_from_configuration()
+        self._ticker_symbols = TickerSymbolConfiguration().ticker_symbols
         self._historical_trade_data = pd.DataFrame()
         self._changes = pd.DataFrame()
         self._list_mode = GAINERS
@@ -57,7 +57,8 @@ class TradeEngine:
 
     def run(self):
         while True:
-            self._historical_trade_data = self.historical_trade_data.append(TradeData.get_data_for_all_symbol())
+            self._historical_trade_data = \
+                self.historical_trade_data.append(TradeData.get_data_for_all_symbols())
             for ticker_symbol in self._ticker_symbols:
                 for i in INTERVALS:
                     self.check_change_interval(ticker_symbol, i)
@@ -68,9 +69,6 @@ class TradeEngine:
 
     def join(self):
         self._thread.join()
-
-    def change_list_mode(self, list_mode):
-        self._list_mode = list_mode
 
     def check_change_interval(self, ticker_symbol, interval):
         candle_sticks = int(interval / SLEEP_TIME)
@@ -175,7 +173,7 @@ class TradeEngine:
 
     @staticmethod
     def get_percentage(start, end):
-        return ((end - start) / start) * 100.0
+        return start and ((end - start) / start) * 100.0
 
     def cross_check_ticker_symbols(self):
         symbols = TradeClient().get_symbols()
@@ -197,8 +195,8 @@ class TradeEngine:
     def get_target_quantity(btc_quantity, last_price):
         return float(btc_quantity) / last_price
 
-    @classmethod
-    def exists_ticker_symbol_in_trade_data(cls, ticker_symbol, ticker_symbols_trade_data):
+    @staticmethod
+    def exists_ticker_symbol_in_trade_data(ticker_symbol, ticker_symbols_trade_data):
         for info in ticker_symbols_trade_data:
             if TickerSymbolConfiguration().get_adjusted_trade_data_ticker_symbol(info) == ticker_symbol:
                 return True
