@@ -1,0 +1,27 @@
+Metadata-Version: 2.1
+Name: py-pnd-crypto-tradebot
+Version: 0.1
+Summary: A crypto pump and dump detecting tradebot in Python
+Home-page: https://github.com/evowilliamson/py-pnd-crypto-tradebot
+Author: Evo Williamson
+Author-email: evowilliamson@gmail.com
+License: GNU General Public License, version 2
+Project-URL: Documentation, https://readthedocs.org/projects/ppy-pnd-crypto-tradebot/
+Project-URL: Source Code, https://github.com/evowilliamson/py-pnd-crypto-tradebot/
+Description: 
+        # Python Crypto Trade bot
+        
+        Simple crypto trade bot implementation on Python that connect to Binance and maintains a set of simple algorithms
+        
+Keywords: crypto tradebot algorithm pump dump python
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: GNU General Public License v2 (GPLv2)
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Information Technology
+Classifier: Topic :: Software Development
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
