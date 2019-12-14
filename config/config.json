@@ -4,6 +4,7 @@
     "dbhost": "127.0.0.1",
     "dbname": "trade_bot",
     "dbport": "3306",
-    "btc_pump_quantity": "0.05"
+    "btc_pump_quantity": "0.05",
+    "dao": "PythonDao"
 
 }

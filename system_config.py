@@ -11,9 +11,8 @@ DBPASSWORD = "dbpassword"
 DBHOST = "dbhost"
 DBNAME = "dbname"
 DBPORT = "dbport"
-
 BTC_PUMP_QUANTITY = "btc_pump_quantity"
-
+DAO = "dao"
 
 @Singleton
 class Config:

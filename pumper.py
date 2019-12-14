@@ -1,6 +1,6 @@
 import threading
-from dao.dao import Dao, RUNNING
-from dao.dao import Pump
+from dao.sqlalchemy.sqlalchemydao import RUNNING
+from dao.dao_selector import dao
 import time
 from ticker_symbol_configuration import TickerSymbolConfiguration
 from trade_client import TradeClient
@@ -13,16 +13,16 @@ class Pumper:
                  initial_volume=None, first_pump_volume=None, quantity=None):
         self._trade_engine = trade_engine
         if data_pump is None:
-            self._data_pump = Pump.new(ticker_symbol=ticker_symbol,
-                                       initial_price=float(str(initial_price)),
-                                       first_pump_price=float(str(first_pump_price)),
-                                       buy_price=float(str(first_pump_price*1.01)),
-                                       initial_volume=float(str(initial_volume)),
-                                       first_pump_volume=float(str(first_pump_volume)),
-                                       quantity=float(str(quantity)),
-                                       stop_loss=float(str(initial_price*0.9925)),
-                                       status=RUNNING)
-            Dao().save_pump(self._data_pump)
+            self._data_pump = { "ticker_symbol": ticker_symbol,
+                                "initial_price": float(str(initial_price)),
+                                "first_pump_price": float(str(first_pump_price)),
+                                "buy_price": float(str(first_pump_price*1.01)),
+                                "initial_volume": float(str(initial_volume)),
+                                "first_pump_volume": float(str(first_pump_volume)),
+                                "quantity": float(str(quantity)),
+                                "stop_loss": float(str(initial_price*0.9925)),
+                                "status": RUNNING}
+            dao.save_pump(self._data_pump)
             print("new pumper for ticker symbol {0}, bought at {1}".format(ticker_symbol, str(first_pump_price*1.01)))
         else:
             print("loaded pumper for ticker symbol {0} from db".format(ticker_symbol))
@@ -35,8 +35,6 @@ class Pumper:
             data = self.get_trade_data()
             if not data:
                 print("Error: cannot find ticker symbol in pumper")
-            else:
-                self.save_pump_details(data)
             if self.check_stop_loss(data):
                 self.close(data)
                 return
@@ -52,13 +50,10 @@ class Pumper:
             return None
         return data
 
-    def save_pump_details(self, data):
-        Dao().save_pump_details(
-            self.pump_id, float(data[trade_client.PRICE]), float(data[trade_client.VOLUME]))
-
     @staticmethod
     def reconstruct_running_pumps(trade_engine):
-        return [Pumper(trade_engine=trade_engine, data_pump=data_pump) for data_pump in Dao().get_all_running_pumps()]
+        return [Pumper(trade_engine=trade_engine, data_pump=data_pump) 
+            for data_pump in dao().get_all_running_pumps()]
 
     def check_stop_loss(self, data):
         current_price = float(data[trade_client.PRICE])
@@ -80,14 +75,14 @@ class Pumper:
             if old_stop_loss < self._data_pump.stop_loss:
                 print("Stop loss of ticker symbol {} adjusted to {}".
                       format(self.ticker_symbol, self._data_pump.stop_loss))
-                Dao().update_stop_loss(self._data_pump)
+                dao().update_stop_loss(self._data_pump)
 
     def close(self, data):
         print("Closing pump {0}".format(self._data_pump.ticker_symbol))
         self._data_pump.end_price = float(data[trade_client.PRICE])
         self._data_pump.profit_pct = \
             ((self._data_pump.end_price - self._data_pump.initial_price) / self._data_pump.initial_price) * 100.0
-        Dao().close_pump(self._data_pump)
+        dao().close_pump(self._data_pump)
         self.pumpers.remove(self)
 
     def join(self):
