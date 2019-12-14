@@ -28,17 +28,16 @@ class SQLAlchemyDao:
         ))
         self.Session = sessionmaker(bind=self._engine)
 
-    def new_pump(self, pump):
-        
-
     def get_all_running_pumps(self):
         session = self.Session()
         return session.query(Pump).filter_by(status=RUNNING).all()
 
-    def save_pump(self, data_pump):
+    def save_pump(self, **kwargs):
+        pump = Pump.new(**kwargs)
         session = self.Session()
-        session.add(data_pump)
+        session.add(pump)
         session.commit()
+        return pump
 
     def close_pump(self, data_pump):
         session = self.Session()

@@ -13,7 +13,8 @@ class Pumper:
                  initial_volume=None, first_pump_volume=None, quantity=None):
         self._trade_engine = trade_engine
         if data_pump is None:
-            self._data_pump = { "ticker_symbol": ticker_symbol,
+            self._data_pump = dao().save_pump({
+                                "ticker_symbol": ticker_symbol,
                                 "initial_price": float(str(initial_price)),
                                 "first_pump_price": float(str(first_pump_price)),
                                 "buy_price": float(str(first_pump_price*1.01)),
@@ -21,8 +22,7 @@ class Pumper:
                                 "first_pump_volume": float(str(first_pump_volume)),
                                 "quantity": float(str(quantity)),
                                 "stop_loss": float(str(initial_price*0.9925)),
-                                "status": RUNNING}
-            dao.save_pump(self._data_pump)
+                                "status": RUNNING})
             print("new pumper for ticker symbol {0}, bought at {1}".format(ticker_symbol, str(first_pump_price*1.01)))
         else:
             print("loaded pumper for ticker symbol {0} from db".format(ticker_symbol))
