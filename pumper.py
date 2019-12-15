@@ -4,7 +4,6 @@ from dao.dao_selector import dao
 import time
 from ticker_symbol_configuration import TickerSymbolConfiguration
 from trade_client import TradeClient
-import trade_client
 import datetime
 
 class Pumper:
@@ -56,7 +55,7 @@ class Pumper:
             for data_pump in dao().get_all_running_pumps()]
 
     def check_stop_loss(self, data):
-        current_price = float(data[trade_client.PRICE])
+        current_price = float(data[TradeClient().PRICE])
         if current_price < self._data_pump["stop_loss"]:
             print("Ticker symbol {0}, just tell through stop loss {1}, "
                   "perceived loss in btc value = {2}".format(
@@ -66,9 +65,8 @@ class Pumper:
             return True
         else:
             return False
-
     def adjust_stop_loss(self, data):
-        current_price = float(data[trade_client.PRICE])
+        current_price = float(data[TradeClient().PRICE])
         old_stop_loss = self._data_pump["stop_loss"]
         if self._data_pump["start_time"] + datetime.timedelta(minutes=1) < datetime.datetime.now():
             self._data_pump["stop_loss"] = max(self._data_pump["stop_loss"], current_price * 0.95)
@@ -79,7 +77,7 @@ class Pumper:
 
     def close(self, data):
         print("Closing pump {0}".format(self._data_pump["ticker_symbol"]))
-        self._data_pump["end_price"] = float(data[trade_client.PRICE])
+        self._data_pump["end_price"] = float(data[TradeClient().PRICE])
         self._data_pump["profit_pct"] = \
             ((self._data_pump["end_price"] - self._data_pump["initial_price"]) / 
               self._data_pump["initial_price"]) * 100.0

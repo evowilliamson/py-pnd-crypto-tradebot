@@ -1,48 +1,47 @@
 from trade_client import TradeClient
-import trade_data
-import trade_client
 from ticker_symbol_configuration import TickerSymbolConfiguration
 import pandas as pd
 import datetime
 
-TIME = "time"
-PENULTIMATE = 2
-TICKER_SYMBOL = "ticker_symbol"
-VALUE = "value"
-PRICE = "price"
-VOLUME = "volume"
-
 
 class TradeData:
 
-    @staticmethod
-    def get_data_for_all_symbols():
+    TIME = "time"
+    PENULTIMATE = 2
+    TICKER_SYMBOL = "ticker_symbol"
+    VALUE = "value"
+    PRICE = "price"
+    VOLUME = "volume"
+
+    @classmethod
+    def get_data_for_all_symbols(cls):  
         df = pd.DataFrame()
-        for data in TradeClient().get_trade_data_all_symbols():
+        for data in TradeClient.get_trade_data_all_symbols():
             ticker_symbol = TickerSymbolConfiguration().get_adjusted_trade_data_ticker_symbol(data)
             if not TickerSymbolConfiguration().exists_in_configuration(ticker_symbol):
                 continue
             row = pd.DataFrame({
-                TIME: datetime.datetime.now(),
-                TICKER_SYMBOL: {VALUE: ticker_symbol},
-                trade_data.PRICE: {VALUE: float(data[trade_client.PRICE])},
-                trade_data.VOLUME: {VALUE: float(data[trade_client.VOLUME])}})
-            row = row.set_index([TIME])
+                cls.TIME: datetime.datetime.now(),
+                cls.TICKER_SYMBOL: {cls.VALUE: ticker_symbol},
+                cls.PRICE: {cls.VALUE: float(data[TradeClient.PRICE])},
+                cls.VOLUME: {cls.VALUE: float(data[TradeClient.VOLUME])}})
+            row = row.set_index([cls.TIME])
             df = df.append(row)
         return df
 
-    @staticmethod
-    def get_current_trade_data(data, ticker_symbol, what):
-        return data[data[TICKER_SYMBOL] == ticker_symbol].tail(1)[what].values[0]
+    @classmethod
+    def get_current_trade_data(cls, data, ticker_symbol, what):
+        return data[data[cls.TICKER_SYMBOL] == ticker_symbol].tail(1)[what].values[0]
 
-    @staticmethod
-    def get_penultimate_trade_data(data, ticker_symbol, what):
-        return TradeData.get_current_minus_n_trade_data(data, ticker_symbol, what, PENULTIMATE)
+    @classmethod
+    def get_penultimate_trade_data(cls, data, ticker_symbol, what):
+        return cls.get_current_minus_n_trade_data(
+            data, ticker_symbol, what, cls.PENULTIMATE)
 
-    @staticmethod
-    def get_current_minus_n_trade_data(data, ticker_symbol, what, n):
-        return data[data[TICKER_SYMBOL] == ticker_symbol].tail(n + 1).head(1)[what].values[0]
+    @classmethod
+    def get_current_minus_n_trade_data(cls, data, ticker_symbol, what, n):
+        return data[data[cls.TICKER_SYMBOL] == ticker_symbol].tail(n + 1).head(1)[what].values[0]
 
-    @staticmethod
-    def get_number_of_rows(data, ticker_symbol):
-        return len(data[data[TICKER_SYMBOL] == ticker_symbol])
+    @classmethod
+    def get_number_of_rows(cls, data, ticker_symbol):
+        return len(data[data[cls.TICKER_SYMBOL] == ticker_symbol])

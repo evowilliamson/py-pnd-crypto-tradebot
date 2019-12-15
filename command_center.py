@@ -1,5 +1,5 @@
 import threading
-from trade_engine import GAINERS, LOSERS
+from trade_engine import TradeEngine
 
 
 class CommandCenter:
@@ -19,10 +19,10 @@ class CommandCenter:
         if command == "list":
             option = self.get_argument(input_console, 1)
             list_mode = None
-            if option == GAINERS:
-                list_mode = GAINERS
-            elif option == LOSERS:
-                list_mode = LOSERS
+            if option == TradeEngine.GAINERS:
+                list_mode = TradeEngine.GAINERS
+            elif option == TradeEngine.LOSERS:
+                list_mode = TradeEngine.LOSERS
             else:
                 self.print_incorrect_input(input_console)
 

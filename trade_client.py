@@ -1,33 +1,37 @@
-from singleton import Singleton
 from binance.client import Client
 import json
 
-BINANCE_KEY = "binance_key"
-BINANCE_SECRET = "binance_secret"
-TICKER_SYMBOL = "ticker_symbol"
-SYMBOLS = "symbols"
 
-PRICE = "lastPrice"
-VOLUME = "quoteVolume"
-
-
-@Singleton
 class TradeClient:
+
+    BINANCE_KEY = "binance_key"
+    BINANCE_SECRET = "binance_secret"
+    TICKER_SYMBOL = "ticker_symbol"
+    SYMBOLS = "symbols"
+    PRICE = "lastPrice"
+    VOLUME = "quoteVolume"
 
     def __init__(self):
         #cryptoairdrop001@protonmail.com
-        self._config = json.load(open('config/binance.config.json'))
-        self._client = Client(self._config[BINANCE_KEY], self._config[BINANCE_SECRET])
+        TradeClient.config = json.load(open('config/binance.config.json'))
+        TradeClient.trade_client = Client(
+            TradeClient.config[TradeClient.BINANCE_KEY], 
+            TradeClient.config[TradeClient.BINANCE_SECRET])
 
-    def get_trade_data_all_symbols(self):
-        return self.client.get_ticker()
+    @classmethod
+    def get_trade_data_all_symbols(cls):
+        return cls.trade_client.get_ticker()
 
-    def get_trade_data(self, ticker_symbol_in_market):
-        return self.client.get_ticker(symbol=ticker_symbol_in_market)
+    @classmethod
+    def get_trade_data(cls, ticker_symbol_in_market):
+        return cls.trade_client.get_ticker(symbol=ticker_symbol_in_market)
 
-    def get_symbols(self):
-        return self.client.get_exchange_info()[SYMBOLS]
+    @classmethod
+    def get_symbols(cls):
+        return cls.trade_client.get_exchange_info()[TradeClient.SYMBOLS]
 
-    @property
-    def client(self):
-        return self._client
+    @classmethod
+    def get_client(cls):
+        return TradeClient.trade_client
+
+TradeClient()

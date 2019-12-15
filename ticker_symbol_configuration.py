@@ -1,15 +1,13 @@
 from singleton import Singleton
 
-SYMBOL = "symbol"
-SYMBOLS = SYMBOL + "s"
-
-BTC = "BTC"
-USDT = "USDT"
-BTCUSD = BTC + USDT
-
-
 @Singleton
 class TickerSymbolConfiguration:
+
+    SYMBOL = "symbol"
+    SYMBOLS = SYMBOL + "s"
+    BTC = "BTC"
+    USDT = "USDT"
+    BTCUSD = BTC + USDT
 
     def __init__(self):
         self._ticker_symbols = [ticker.strip() for ticker in 
@@ -116,17 +114,17 @@ class TickerSymbolConfiguration:
         ]]
 
     def get_adjusted_trade_data_ticker_symbol(self, info):
-        if info[SYMBOL] == BTCUSD:
-            ticker_symbol = info[SYMBOL].replace(USDT, "")
+        if info[self.SYMBOL] == self.BTCUSD:
+            ticker_symbol = info[self.SYMBOL].replace(self.USDT, "")
         else:
-            ticker_symbol = info[SYMBOL].replace(BTC, "")
+            ticker_symbol = info[self.SYMBOL].replace(self.BTC, "")
         return ticker_symbol
 
     def get_ticker_symbol_in_market(self, ticker_symbol):
-        if ticker_symbol == BTC:
-            return BTCUSD
+        if ticker_symbol == self.BTC:
+            return self.BTCUSD
         else:
-            return ticker_symbol + BTC
+            return ticker_symbol + self.BTC
 
     def exists_in_configuration(self, ticker_symbol):
         for _ticker_symbol in self.ticker_symbols:
