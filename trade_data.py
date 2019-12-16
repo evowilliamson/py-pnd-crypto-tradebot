@@ -15,6 +15,13 @@ class TradeData:
 
     @classmethod
     def get_data_for_all_symbols(cls):  
+        """ This class method retrieves all trade data for all tickers that are defined in the
+        TickerSymbolConfiguration class
+
+        Returns:
+            DataFrame: the dataframe containing the data
+        """
+
         df = pd.DataFrame()
         for data in TradeClient.get_trade_data_all_symbols():
             ticker_symbol = TickerSymbolConfiguration().get_adjusted_trade_data_ticker_symbol(data)
@@ -31,10 +38,36 @@ class TradeData:
 
     @classmethod
     def get_current_trade_data(cls, data, ticker_symbol, what):
-        return data[data[cls.TICKER_SYMBOL] == ticker_symbol].tail(1)[what].values[0]
+        """ This method retrieves the latest known data for the ticker symbol
+
+        Args:
+            data(DataFrame): The dataframe with the data
+            ticker_symbol(str): The ticker symbol of which data should be retrieved
+            what(str): label indicating what attribute: TradeData.PRICE or TradeData.VOLUMNE
+        
+        Returns:
+            the single data element (int, double, etc...)
+        """
+
+        if data.get(cls.TICKER_SYMBOL) is None:
+            return None
+        else:
+            return data[data[cls.TICKER_SYMBOL] == ticker_symbol].tail(1)[what].values[0]
 
     @classmethod
     def get_penultimate_trade_data(cls, data, ticker_symbol, what):
+        """ This method retrieves the penultimate known data row for the ticker symbol. 
+        Data is appended sequentially, dictated by time
+
+        Args:
+            data(DataFrame): The dataframe with the data
+            ticker_symbol(str): The ticker symbol of which data should be retrieved
+            what(str): label indicating what attribute: TradeData.PRICE or TradeData.VOLUMNE
+        
+        Returns:
+            the single data element (int, double, etc...)
+        """
+
         return cls.get_current_minus_n_trade_data(
             data, ticker_symbol, what, cls.PENULTIMATE)
 
@@ -44,4 +77,17 @@ class TradeData:
 
     @classmethod
     def get_number_of_rows(cls, data, ticker_symbol):
-        return len(data[data[cls.TICKER_SYMBOL] == ticker_symbol])
+        """ This method retrieves the number of rows in the dataframe
+
+        Args:
+            data(DataFrame): The dataframe with the data
+            ticker_symbol(str): The ticker symbol of which data should be retrieved
+        
+        Returns:
+            int: the row count in the dataframe for that ticker
+        """
+
+        if data.get(cls.TICKER_SYMBOL) is None:
+            return None
+        else:
+            return len(data[data[cls.TICKER_SYMBOL] == ticker_symbol])

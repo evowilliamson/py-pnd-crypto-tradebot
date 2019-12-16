@@ -138,9 +138,7 @@ class TradeEngine:
 
         pumps = self._changes[self._changes[self.PUMP]]
         if not pumps.empty:
-            print("*************************************************************************************")
             print("Pump detected !!!! ")
-            print("*************************************************************************************")
 
         sort_order = False if self._list_mode == self.GAINERS else True
         self._changes = self._changes.sort_values(by=[self.INTERVAL, TradeData.PRICE],
@@ -163,10 +161,8 @@ class TradeEngine:
                                 row[TradeData.VOLUME], "***" if row[self.PUMP] else "")
             if self.INTERVAL_TO_COLUMN_NO[interval] == self.NUMBER_OF_COLUMNS:
                 if row_no == self.FIRST_ROW:
-                    print("")
                     print(header_line)
-                    print("---------------------------------------------------------------------------------------"
-                          "-----------------------------------------------------------")
+                    print("-------------------------------------------------------")
                     header_line = ""
                 print(line)
                 line = ""

@@ -13,7 +13,6 @@ class TestTradeClient(unittest.TestCase):
 
     def test_get_trade_data_all_symbols(self):
         list = TradeClient.get_trade_data_all_symbols()
-        print("\nNumber of tickers: {0}".format(len(list)))
         self.assertTrue(len(list) > 100)
 
     def test_get_trade_data_found(self):
