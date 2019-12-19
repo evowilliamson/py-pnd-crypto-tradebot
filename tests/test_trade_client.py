@@ -12,12 +12,10 @@ class TestTradeClient(unittest.TestCase):
         self.assertIsInstance(TradeClient.get_client(), BinanceClient)
 
     def test_get_trade_data_all_symbols(self):
-        list = TradeClient.get_trade_data_all_symbols()
-        self.assertTrue(len(list) > 100)
+        self.assertTrue(len(TradeClient.get_trade_data_all_symbols()) > 100)
 
     def test_get_trade_data_found(self):
-        ticker = TradeClient.get_trade_data("ETHBTC")
-        self.assertTrue(ticker["symbol"] == "ETHBTC")
+        self.assertTrue(TradeClient.get_trade_data("ETHBTC")["symbol"] == "ETHBTC")
 
     def test_get_trade_data_not_found(self):
         with self.assertRaises(BinanceAPIException) as e:

@@ -1,3 +1,7 @@
+""" Module that groups together methods that retrieve and process data
+from the trade client
+"""
+
 from trade_client import TradeClient
 from ticker_symbol_configuration import TickerSymbolConfiguration
 import pandas as pd
