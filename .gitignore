@@ -1,4 +1,5 @@
 *.pyc
 venv/
 .vscode/
+config/binance.config.json
 
